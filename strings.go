@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/gomarkdown/markdown"
@@ -35,13 +34,8 @@ func TrimForMeta(value string) string {
 
 // Parsing a markdown string.
 
-func Markdown(val string) string {
-	val = template.HTMLEscapeString(val)
-	return string(markdown.ToHTML([]byte(val), nil, nil))
-}
-
-func HTMLEscape(val string) string {
-	return template.HTMLEscapeString(val)
+func Markdown(val string) []byte {
+	return markdown.ToHTML([]byte(val), nil, nil)
 }
 
 // Function for formatting a timestamp as "x hours ago"

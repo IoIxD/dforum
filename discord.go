@@ -180,7 +180,7 @@ func FormatDiscordThings(guildID, content string) template.HTML {
 			newContent += template.HTMLEscapeString(v) + " "
 		}
 	}
-	return template.HTML(newContent)
+	return template.HTML(Markdown(newContent))
 }
 
 func FormatUserMention(guildID, mention string) string {
