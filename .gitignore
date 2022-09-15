@@ -22,3 +22,5 @@ go.work
 
 config.toml
 DFS
+
+start.sh
