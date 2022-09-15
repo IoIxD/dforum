@@ -11,4 +11,5 @@ var FuncMap = template.FuncMap{
 	"PostCount":            PostCount,
 	"PrettyTime":           PrettyTime,
 	"FormatDiscordThings":  FormatDiscordThings,
+	"GuildNum":             GuildNum,
 }

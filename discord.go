@@ -6,7 +6,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -44,16 +43,7 @@ func DiscordInit() {
 	discord.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAllWithoutPrivileged)
 	discord.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		// Update the status of the bot
-		updateStatus()
 		fmt.Printf("Logged in as: %v#%v\n", s.State.User.Username, s.State.User.Discriminator)
-	})
-
-	discord.AddHandler(func(s *discordgo.Session, r *discordgo.GuildMemberAdd) {
-		// Is the bot us?
-		if r.User == s.State.User {
-			// Update the status.
-			updateStatus()
-		}
 	})
 
 	discord.Open()
@@ -199,15 +189,7 @@ func FormatUserMention(guildID, mention string) string {
 	return "@" + member.User.Username
 }
 
-// Update the status of the bot to show how many servers it's in.
-func updateStatus() {
-	servers := len(discord.State.Guilds)
-	err := discord.UpdateGameStatus(
-		int(time.Now().Unix()),
-		fmt.Sprintf("nothing. Serving %v servers", servers))
-	if err != nil {
-		fmt.Printf("Error updating status; %v\n", err.Error())
-	} else {
-		fmt.Println("updated status")
-	}
+// Get the number of guilds we're in.
+func GuildNum() string {
+	return fmt.Sprint(len(discord.State.Guilds))
 }
