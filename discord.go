@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"os"
 	"regexp"
 	"strings"
@@ -158,20 +159,22 @@ func PostCount(guildID, chanID string) string {
 }
 
 // Analyze content for mentions and emojis
-func FormatDiscordThings(guildID, content string) string {
+func FormatDiscordThings(guildID, content string) template.HTML {
 	parts := strings.Split(content, " ")
 	var newContent string
 	for _, v := range parts {
 		switch {
+		case strings.Contains(v, "\n"):
+			newContent += strings.Replace(template.HTMLEscapeString(v), "\n", "<br>", -1) + " "
 		/*case mentionRe.Match([]byte(v)):
-			newContent += FormatUserMention(guildID, v) + " "
+			newContent += FormatUserMention(guildID, template.HTMLEscapeString(v)) + " "
 		/*case emojiRe.Match(v):
-		newContent += FormatEmojiMention(guildID, v) + " "*/
+		newContent += FormatEmojiMention(guildID, template.HTMLEscapeString(v)) + " "*/
 		default:
-			newContent += v + " "
+			newContent += template.HTMLEscapeString(v) + " "
 		}
 	}
-	return newContent
+	return template.HTML(newContent)
 }
 
 func FormatUserMention(guildID, mention string) string {
