@@ -11,6 +11,14 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// things that need to be replaced with html or otherwise
+
+var replacer = strings.NewReplacer(
+	"\n", "<br>",
+	"&lt;", "<span><</span>",
+	"&gt;", "<span>></span>",
+)
+
 // constants that discordgo doesn't have yet
 const (
 	ChannelTypeForum discordgo.ChannelType = 15
@@ -170,14 +178,12 @@ func FormatDiscordThings(guildID, content string) template.HTML {
 	var newContent string
 	for _, v := range parts {
 		switch {
-		case strings.Contains(v, "\n"):
-			newContent += strings.Replace(template.HTMLEscapeString(v), "\n", "<br>", -1) + " "
 		/*case mentionRe.Match([]byte(v)):
 			newContent += FormatUserMention(guildID, template.HTMLEscapeString(v)) + " "
 		/*case emojiRe.Match(v):
 		newContent += FormatEmojiMention(guildID, template.HTMLEscapeString(v)) + " "*/
 		default:
-			newContent += template.HTMLEscapeString(v) + " "
+			newContent += replacer.Replace(template.HTMLEscapeString(v)) + " "
 		}
 	}
 	return template.HTML(Markdown(newContent))

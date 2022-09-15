@@ -13,6 +13,13 @@ a {
     text-decoration: none;
 }
 
+pre {
+    display: inline-block;
+}
+p + pre {
+    margin-left: 0.5em;
+}
+
 .topics, .threads {
     display: block;
 }
