@@ -1,0 +1,85 @@
+body {
+    font-family: "Ubuntu";
+    max-width: 75rem;
+    display:block;
+    margin: 0 auto;
+    padding: 3rem;
+    background: #eee;
+    color: #111;
+}
+
+a {
+    color: #03c;
+    text-decoration: none;
+}
+
+.topics, .threads {
+    display: block;
+}
+
+.title, .threadnum {
+    padding: 5px;
+}
+
+.row {
+    display:block;
+    margin: 5px 0;
+}
+
+.title {
+    background: #ddd;
+    flex: 3;
+    margin: 2px;
+}
+
+.threadnum {
+    background: #ccc;
+    margin: 2px;
+    flex: 1;
+}
+
+.post {
+    display: block;
+}
+.flex {
+    display: flex;
+}
+
+.header {
+    display:block;
+    width:100%;
+    padding: 5px;
+    background: #ccc;
+    border: 1px solid #ddd;
+}
+.userinfo {
+    flex: 1;
+    background: #ddd;
+    border: 1px solid #eee;
+    padding: 25px 0 25px 50px;
+    margin-right:10px;
+}
+.postinfo {
+    flex: 4;
+}
+.postinfo img {
+    max-width: 50%;
+    margin-bottom:5%;
+}
+
+.top {
+    height: 5%;
+    display: block;
+    color: #222;
+    margin: 10px 0;
+}
+.top a {
+    color: black;
+}
+
+.nav {
+    display: block;
+    padding: 15px;
+    margin: 10px 0 50px 0;
+    background: #ddd;
+}

@@ -1,0 +1,30 @@
+{{ $guildID := index .Values 0 }}
+{{ $topics := GetTopics $guildID}}
+<span class='nav'>
+    <b>{{GetServerTitle $guildID}}</b>
+</span>
+{{if $topics.Error}}
+    {{$topics.Error}}
+{{else}}
+    {{if le (len $topics.Channels) 0}}
+        <code>no topics found; either the bots not in that server or there's no forum channels in it.</em>
+    {{else}}
+        <title>{{GetServerTitle $guildID}}</title>
+        <span class='topics'>
+            <span class='flex row'>
+                <span class='title'>Forum</span>
+                <span class='threadnum'>Threads</span>
+            </span>
+        {{range $i, $v := $topics.Channels}}
+            <span class='flex row'>
+                <span class='title'>
+                    <a href="/{{$guildID}}/{{$v.ID}}"><b>{{$v.Name}}</b></a>
+                </span>
+                <span class='threadnum'>
+                    {{len (GetThreadsInChannel $guildID $v.ID).Channels}}
+                </span>
+            </span>
+        {{end}}
+        </span>
+    {{end}}
+{{end}}

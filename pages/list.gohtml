@@ -1,0 +1,10 @@
+{{ template "header.gohtml" .}}
+{{ $len := len .Values }}
+{{ if le $len 1}}
+    {{template "topics.gohtml" .}}
+{{else if le $len 2}}
+    {{template "messages.gohtml" .}}
+{{else}}
+    {{template "message.gohtml" .}}
+{{end}}
+{{ template "footer.gohtml" .}}
