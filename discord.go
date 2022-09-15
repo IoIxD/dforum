@@ -25,7 +25,7 @@ var emojiRe = regexp.MustCompile(`<:([A-z]*?):([0-9]*)>`)
 var numOnlyRe = regexp.MustCompile(`([^0-9])`)
 
 // Discord Thread
-func DiscordThread() {
+func DiscordInit() {
 	discord, err = discordgo.New("Bot " + LocalConfig.BotToken)
 	if err != nil {
 		fmt.Println(err)
@@ -39,9 +39,15 @@ func DiscordThread() {
 		fmt.Printf("Logged in as: %v#%v\n", s.State.User.Username, s.State.User.Discriminator)
 	})
 
+	discord.AddHandler(func(s *discordgo.Session, r *discordgo.GuildMemberAdd) {
+		// Is the bot us?
+		if r.User == s.State.User {
+			// Update the status.
+			updateStatus()
+		}
+	})
+
 	discord.Open()
-	for {
-	}
 }
 
 // Get the relevant channels in a guild.

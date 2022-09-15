@@ -31,7 +31,7 @@ func main() {
 	re = regexp.MustCompile(`([^0-9\.\/])`)
 
 	// initialize the discord shit
-	go DiscordThread()
+	DiscordInit()
 
 	// initialize the main server
 	s := &http.Server{
