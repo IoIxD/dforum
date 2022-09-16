@@ -71,7 +71,7 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 			guildID, err := strconv.Atoi(parts[0])
 			if err != nil {
 				fmt.Println(err)
-				return
+				break
 			}
 			XMLResult = XMLPageGenGuildChannels(snowflake.ID(guildID))
 		}
@@ -80,7 +80,7 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 		chanID, err := strconv.Atoi(parts[1])
 		if err != nil {
 			fmt.Println(err)
-			return
+			break
 		}
 		XMLResult = XMLPageGenGuildChannelThreads(parts[0], snowflake.ID(chanID))
 	}
@@ -92,6 +92,7 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 }
 
 func XMLPageGenGuilds() (XMLPage string) {
+	fmt.Println(XMLPageHeader)
 	XMLPage = XMLPageHeader
 	XMLPage += `
 		<url>
@@ -117,6 +118,7 @@ func XMLPageGenGuilds() (XMLPage string) {
 }
 
 func XMLPageGenGuildChannels(guildID snowflake.ID) (XMLPage string) {
+	XMLPage = XMLPageHeader
 	channels := Client.GetForums(guildID)
 	for _, t := range channels {
 		XMLPage += fmt.Sprintf(`
