@@ -16,7 +16,8 @@ import (
 //go:embed pages/*.*
 var pages embed.FS
 var tmpl *template.Template
-var re *regexp.Regexp
+var NumbersOnlyRe *regexp.Regexp
+var SitemapRe *regexp.Regexp
 
 func main() {
 	// initialize the template shit
@@ -27,8 +28,9 @@ func main() {
 		log.Println(err)
 	}
 
-	// initialize the regex shit
-	re = regexp.MustCompile(`([^0-9\.\/])`)
+	// initialize the regex expressions.
+	NumbersOnlyRe = regexp.MustCompile(`([^0-9\.\/])`)
+	SitemapRe = regexp.MustCompile(`sitemap(-([0-9]*)){0,3}.xml`)
 
 	// initialize the discord shit
 	DiscordInit()
@@ -64,15 +66,15 @@ func handlerFunc(w http.ResponseWriter, r *http.Request) {
 	var file *os.File
 	var err error
 
-	// If it's sitemap.xml move to a new function.
-	if pagename == "sitemap.xml" {
-		XMLServe(w, r)
-		return
-	}
-
+	// pagename rewrites
+	switch {
 	// If the pagename is all numbers then it's a list page.
-	if !re.Match([]byte(pagename)) {
+	case !NumbersOnlyRe.Match([]byte(pagename)):
 		pagename = "list"
+	// If it's any of the sitemap xml files we want to move to a new function.
+	case SitemapRe.Match([]byte(pagename)):
+		XMLServe(w, r, pagename)
+		return
 	}
 
 	// Check if it could refer to another internal page
