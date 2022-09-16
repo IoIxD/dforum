@@ -6,8 +6,9 @@ import (
 	"time"
 )
 
-var XMLPage string    // The xml page to serve.
-var LastUpdated int64 // When the xml page was last generated
+var XMLPage string           // The xml page to serve.
+var LastUpdated int64        // When the xml page was last generated
+var LastUpdatedFormat string // That same value but formatted in a way that Google likes.
 
 func XMLServe(w http.ResponseWriter, r *http.Request) {
 	timeNow := time.Now().Unix()
@@ -15,6 +16,7 @@ func XMLServe(w http.ResponseWriter, r *http.Request) {
 	if (timeNow-int64(time.Minute*30)) > LastUpdated || LastUpdated == 0 {
 		// Refresh it.
 		LastUpdated = timeNow
+		LastUpdatedFormat = time.Now().Format("2006-01-02")
 		XMLPage = XMLPageGen()
 	}
 
@@ -28,7 +30,7 @@ func XMLPageGen() (XMLPage string) {
 		<urlset xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 		<url>
 			<loc>https://dfs.ioi-xd.net/</loc>
-			<lastmod>%d</lastmod>
+			<lastmod>` + LastUpdatedFormat + `</lastmod>
 			<changefreq>hourly</changefreq>
 			<priority>1.0</priority>
 		</url>`
@@ -48,11 +50,11 @@ func XMLPageGen() (XMLPage string) {
 				XMLPage += fmt.Sprintf(`
 					<url>
 						<loc>https://dfs.ioi-xd.net/%v/%v/%v</loc>
-						<lastmod>%d</lastmod>
+						<lastmod>%v</lastmod>
 						<changefreq>hourly</changefreq>
 						<priority>1.0</priority>
 					</url>
-				`, g.ID, c.ID, t.ID, LastUpdated)
+				`, g.ID, c.ID, t.ID, LastUpdatedFormat)
 			}
 		}
 	}
