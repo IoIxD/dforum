@@ -15,6 +15,11 @@ type Bot struct {
 	Client bot.Client
 }
 
+// Get a user's avatar URL.
+func (b *Bot) GetAvatarURL(user discord.User) string {
+	return user.EffectiveAvatarURL()
+}
+
 func (b *Bot) GetForums(guildID snowflake.ID) []discord.GuildForumChannel {
 	var forums []discord.GuildForumChannel
 	b.Client.Caches().Channels().ForEach(func(channel discord.Channel) {
