@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"html/template"
 	"log"
@@ -19,19 +20,20 @@ var tmpl *template.Template
 var re *regexp.Regexp
 
 func main() {
+	// initialize the discord shit
+	bot := InitBot()
+	defer bot.Client.Close(context.TODO())
+
 	// initialize the template shit
 	tmpl = template.New("")
-	tmpl.Funcs(FuncMap) // "FuncMap" refers to a template.FuncMap in another file, that isn't included in this one.
+	tmpl.Funcs(FuncMap(bot)) // "FuncMap" refers to a template.FuncMap in another file, that isn't included in this one.
 	_, err := tmpl.ParseFS(pages, "pages/*")
 	if err != nil {
 		log.Println(err)
 	}
 
 	// initialize the regex shit
-	re = regexp.MustCompile(`([^0-9\.\/])`)
-
-	// initialize the discord shit
-	DiscordInit()
+	re = regexp.MustCompile(`([^0-9./])`)
 
 	// initialize the main server
 	s := &http.Server{
@@ -41,7 +43,7 @@ func main() {
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	if err := s.ListenAndServe(); err != nil {
+	if err = s.ListenAndServe(); err != nil {
 		log.Fatalln(err)
 	}
 }

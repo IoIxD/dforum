@@ -24,3 +24,4 @@ config.toml
 DFS
 
 start.sh
+.idea/

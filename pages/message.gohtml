@@ -1,22 +1,22 @@
-{{ $guildID := index .Values 0 }}
-{{ $chanID := index .Values 1 }}
-{{ $postID := index .Values 2 }}
+{{ $guildID := ParseSnowflake (index .Values 0) }}
+{{ $channelID := ParseSnowflake (index .Values 1) }}
+{{ $postID := ParseSnowflake (index .Values 2) }}
 
 <span class='nav'>
-    {{GetServerTitle $guildID}} > {{GetChannelTitle $chanID}} >
+    {{GetGuildName $guildID}} > {{GetChannelTitle $channelID}} >
     <b>{{GetChannelTitle $postID}}</b>
 </span>
 
-{{$posts := GetMessagesInChannel $postID}}
-{{if $posts.Error}}
-    <code>error while getting the post; {{$posts.Error}}</em>
+{{$messages := GetMessagesInChannel $postID}}
+{{if $messages.Error}}
+    <code>error while getting the post; {{$messages.Error}}</em>
 {{else}}
-    {{range $i, $v := $posts.Posts}}
+    {{range $i, $v := $messages.Messages}}
         {{if or $v.Content $v.Attachments}}
             <span class='post'>
                 <span class='flex'>
                     <span class='header'>
-                        {{PrettyTime $v.Timestamp.Unix}}
+                        {{PrettyTime $v.CreatedAt}}
                     </span>
                 </span>
                 <span class='flex'>
