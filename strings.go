@@ -39,11 +39,8 @@ func Markdown(val string) []byte {
 }
 
 // Function for formatting a timestamp as "x hours ago"
-func PrettyTime(unixTime int64) string {
-	unixTimeDur, err := time.ParseDuration(fmt.Sprintf("%vs", time.Now().Unix()-int64(unixTime)))
-	if err != nil {
-		return err.Error()
-	}
+func PrettyTime(timestamp time.Time) string {
+	unixTimeDur := time.Now().Sub(timestamp)
 
 	if unixTimeDur.Hours() >= 8760 {
 		return fmt.Sprintf("%0.f years ago", unixTimeDur.Hours()/8760)

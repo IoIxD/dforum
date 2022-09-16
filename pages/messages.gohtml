@@ -1,33 +1,29 @@
-{{ $guildID := index .Values 0 }}
-{{ $chanID := index .Values 1 }}
+{{ $guildID := ParseSnowflake (index .Values 0) }}
+{{ $channelID := ParseSnowflake (index .Values 1) }}
 
 <span class='nav'>
-    {{GetServerTitle $guildID}} > <b>{{GetChannelTitle $chanID}}</b>
+    {{GetGuildName $guildID}} > <b>{{GetChannelTitle $channelID}}</b>
 </span>
 
-{{$posts := GetThreadsInChannel $guildID $chanID}}
-{{if $posts.Error}}
-    {{$posts.Error}}
+{{ $threads := GetThreadsInChannel $channelID}}
+{{if le (len $threads) 0}}
+    <code>no posts found; either the bots not in that server or there's no messages in it.</em>
 {{else}}
-    {{if le (len $posts.Channels) 0}}
-        <code>no posts found; either the bots not in that server or there's no messages in it.</em>
-    {{else}}
-        <title>{{GetChannelTitle $chanID}}</title>
-        <span class='topics'>
-            <span class='flex row'>
-                <span class='title'>Threads</span>
-                <span class='threadnum'>Posts</span>
+    <title>{{GetChannelTitle $channelID}}</title>
+    <span class='topics'>
+        <span class='flex row'>
+            <span class='title'>Posts</span>
+            <span class='threadnum'>Messages</span>
+        </span>
+    {{range $i, $v := $threads}}
+        <span class='flex row'>
+            <span class='title'>
+                <a href="/{{$guildID}}/{{$channelID}}/{{$v.ID}}"><b>{{$v.Name}}</b></a>
             </span>
-        {{range $i, $v := $posts.Channels}}
-            <span class='flex row'>
-                <span class='title'>
-                    <a href="/{{$guildID}}/{{$chanID}}/{{$v.ID}}"><b>{{$v.Name}}</b></a>
-                </span>
-                <span class='threadnum'>
-                    {{len (GetMessagesInChannel $v.ID).Posts}}
-                </span>
+            <span class='threadnum'>
+                {{len (GetMessagesInChannel $v.ID).Messages}}
             </span>
-        {{end}}
         </span>
     {{end}}
+    </span>
 {{end}}

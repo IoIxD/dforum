@@ -5,7 +5,10 @@ import (
 	"compress/gzip"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/disgoorg/snowflake/v2"
 )
 
 const (
@@ -64,10 +67,22 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 		if parts[0] == "" {
 			XMLResult = XMLPageGenGuilds()
 		} else {
-			XMLResult = XMLPageGenGuildChannels(parts[0])
+			// convert the guild id to a snowflake
+			guildID, err := strconv.Atoi(parts[0])
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			XMLResult = XMLPageGenGuildChannels(snowflake.ID(guildID))
 		}
 	case 2:
-		XMLResult = XMLPageGenGuildChannelThreads(parts[0], parts[1])
+		// convert the channel id to a snowflake
+		chanID, err := strconv.Atoi(parts[1])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		XMLResult = XMLPageGenGuildChannelThreads(parts[0], snowflake.ID(chanID))
 	}
 	if gz {
 		return GZIPString(XMLResult), true
@@ -86,7 +101,7 @@ func XMLPageGenGuilds() (XMLPage string) {
 			<priority>1.0</priority>
 		</url>`
 
-	guilds := discord.State.Guilds
+	guilds := Client.Client.Caches().Guilds().All()
 	for _, g := range guilds {
 		XMLPage += fmt.Sprintf(`
 			<url>
@@ -101,18 +116,9 @@ func XMLPageGenGuilds() (XMLPage string) {
 	return
 }
 
-func XMLPageGenGuildChannels(guildID string) (XMLPage string) {
-	XMLPage = XMLPageHeader
-	guild, err := discord.State.Guild(guildID)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	channels := guild.Channels
+func XMLPageGenGuildChannels(guildID snowflake.ID) (XMLPage string) {
+	channels := Client.GetForums(guildID)
 	for _, t := range channels {
-		if t.Type != 15 && t.Type != 11 {
-			continue
-		}
 		XMLPage += fmt.Sprintf(`
 			<url>
 				<loc>https://dfs.ioi-xd.net/sitemap-%v-%v.xml.gz</loc>
@@ -120,19 +126,15 @@ func XMLPageGenGuildChannels(guildID string) (XMLPage string) {
 				<changefreq>hourly</changefreq>
 				<priority>1.0</priority>
 			</url>
-		`, guildID, t.ID, LastUpdatedFormat)
+		`, guildID, t.ID(), LastUpdatedFormat)
 	}
 	XMLPage += `</urlset>`
 	return
 }
-func XMLPageGenGuildChannelThreads(guildID, chanID string) (XMLPage string) {
+func XMLPageGenGuildChannelThreads(guildID string, chanID snowflake.ID) (XMLPage string) {
 	XMLPage = XMLPageHeader
-	threads := GetThreadsInChannel(guildID, chanID)
-	if threads.Error != nil {
-		fmt.Println(threads.Error)
-		return
-	}
-	for _, t := range threads.Channels {
+	threads := Client.GetThreadsInChannel(chanID)
+	for _, t := range threads {
 		XMLPage += fmt.Sprintf(`
 			<url>
 				<loc>https://dfs.ioi-xd.net/%v/%v/%v</loc>
@@ -140,7 +142,7 @@ func XMLPageGenGuildChannelThreads(guildID, chanID string) (XMLPage string) {
 				<changefreq>hourly</changefreq>
 				<priority>1.0</priority>
 			</url>
-		`, guildID, chanID, t.ID, LastUpdatedFormat)
+		`, guildID, chanID, t.ID(), LastUpdatedFormat)
 	}
 	XMLPage += `</urlset>`
 	return
