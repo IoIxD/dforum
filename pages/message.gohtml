@@ -21,7 +21,8 @@
                 </span>
                 <span class='flex'>
                     <span class='userinfo'>
-                        {{$v.Author.Username}}
+                        {{$v.Author.Username}}<br>
+                        <img height="128" src="{{GetAvatarURL $v.Author}}">
                     </span>
                     <span class='postinfo'>
                         {{FormatDiscordThings $guildID $v.Content}}<br>
