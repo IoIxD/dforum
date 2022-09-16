@@ -1,0 +1,23 @@
+{{ template "header.gohtml" .}}
+<span class='nav'>
+    {{.Guild.Name}} > <b>{{.Forum.Name}}</b>
+</span>
+
+<title>{{.Forum.Name}}</title>
+<span class='topics'>
+    <span class='flex row'>
+        <span class='title'>Posts</span>
+        <span class='threadnum'>Messages</span>
+    </span>
+    {{range .Posts}}
+        <span class='flex row'>
+            <span class='title'>
+                <a href="/{{$.Guild.ID}}/{{$.Forum.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
+            </span>
+            <span class='threadnum'>
+                {{.MessageCount}}
+            </span>
+        </span>
+    {{end}}
+</span>
+{{ template "footer.gohtml" .}}
