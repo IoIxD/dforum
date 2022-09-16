@@ -23,18 +23,10 @@ var dontCare = strings.NewReplacer(
 )
 
 var XMLPage string           // The xml page to serve.
-var LastUpdated int64        // When the xml page was last generated
-var LastUpdatedFormat string // That same value but formatted in a way that Google likes.
+var LastUpdatedFormat string // obsolete but i'm too tired to remove it
 
 func XMLServe(w http.ResponseWriter, r *http.Request, pagename string) {
-	//timeNow := time.Now().Unix()
-	// If it was last updated up to 30 minutes ago...
-	/*if (timeNow-int64(time.Minute*30)) > LastUpdated || LastUpdated == 0 {
-		// Refresh it.
-		LastUpdated = timeNow
-		LastUpdatedFormat = time.Now().Format("2006-01-02")
-		XMLPage = XMLPageGen(pagename)
-	}*/
+	// TODO: caching system
 	XMLPage, gz := XMLPageGen(pagename)
 	w.Header().Set("Content-Name", pagename)
 	if gz {
