@@ -64,6 +64,12 @@ func handlerFunc(w http.ResponseWriter, r *http.Request) {
 	var file *os.File
 	var err error
 
+	// If it's sitemap.xml move to a new function.
+	if pagename == "sitemap.xml" {
+		XMLServe(w, r)
+		return
+	}
+
 	// If the pagename is all numbers then it's a list page.
 	if !re.Match([]byte(pagename)) {
 		pagename = "list"

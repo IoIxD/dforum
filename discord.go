@@ -32,7 +32,7 @@ var mentionRe = regexp.MustCompile(`<@([0-9]*)>`)
 var emojiRe = regexp.MustCompile(`<:([A-z]*?):([0-9]*)>`)
 var numOnlyRe = regexp.MustCompile(`([^0-9])`)
 
-// Discord Thread
+// Discord Init Function
 func DiscordInit() {
 	discord, err = discordgo.New("Bot " + LocalConfig.BotToken)
 	if err != nil {
@@ -47,6 +47,11 @@ func DiscordInit() {
 	})
 
 	discord.Open()
+}
+
+// Generic function to get the guilds we're in
+func GetGuilds() []*discordgo.Guild {
+	return discord.State.Guilds
 }
 
 // Get the relevant channels in a guild.
