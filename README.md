@@ -4,3 +4,4 @@ DFS is a Discord bot that can be invited to your server that will broadcast all 
 
 It is currently under active development but the basics are here and it's considered complete enough to be put online.
 
+<a href="https://discord.gg/9bkfpQPMPq">we have a discord server.</a>
