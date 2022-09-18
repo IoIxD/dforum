@@ -16,6 +16,8 @@ const (
 	XMLPageHeader        = `<?xml version="1.0" encoding="UTF-8"?>`
 	XMLURLPageHeader     = `<urlset xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`
 	XMLSitemapPageHeader = `<sitemapset xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`
+	XMLSitemapPageFooter = `</sitemapset>`
+	XMLURLPageFooter     = `</urlset>`
 )
 
 var dontCare = strings.NewReplacer(
@@ -156,7 +158,7 @@ func XMLPageGenGuilds() (XMLPage string) {
 			</sitemap>
 		`, g.ID, lastUpdatedFormat)
 	}
-	XMLPage += `</urlset>`
+	XMLPage += XMLSitemapPageFooter
 	return
 }
 
@@ -176,7 +178,7 @@ func XMLPageGenGuildChannels(guildID snowflake.ID) (XMLPage string) {
 			</sitemap>
 		`, guildID, t.ID(), lastUpdatedFormat)
 	}
-	XMLPage += `</urlset>`
+	XMLPage += XMLSitemapPageFooter
 	return
 }
 func XMLPageGenGuildChannelThreads(guildID, chanID snowflake.ID) (XMLPage string) {
@@ -196,7 +198,7 @@ func XMLPageGenGuildChannelThreads(guildID, chanID snowflake.ID) (XMLPage string
 			</url>
 		`, guildID, chanID, t.ID(), lastUpdatedFormat)
 	}
-	XMLPage += `</urlset>`
+	XMLPage += XMLURLPageFooter
 	return
 }
 
