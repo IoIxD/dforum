@@ -137,8 +137,6 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 }
 
 func XMLPageGenGuilds() (XMLPage string) {
-	// todo: have this actually reflect when the channel was last updated.
-	lastUpdatedFormat := time.Now().Format(time.RFC3339)
 	XMLPage = XMLPageHeader
 	XMLPage += XMLSitemapPageHeader
 	guilds := Client.Client.Caches().Guilds().All()
@@ -146,11 +144,8 @@ func XMLPageGenGuilds() (XMLPage string) {
 		XMLPage += fmt.Sprintf(`
 			<sitemap>
 				<loc>https://dfs.ioi-xd.net/sitemap-%v.xml.gz</loc>
-				<lastmod>%v</lastmod>
-				<changefreq>hourly</changefreq>
-				<priority>1.0</priority>
 			</sitemap>
-		`, g.ID, lastUpdatedFormat)
+		`, g.ID)
 	}
 	XMLPage += XMLSitemapPageFooter
 	return
@@ -160,17 +155,12 @@ func XMLPageGenGuildChannels(guildID snowflake.ID) (XMLPage string) {
 	XMLPage = XMLPageHeader
 	XMLPage += XMLSitemapPageHeader
 	channels := Client.GetForums(guildID)
-	// todo: have this actually reflect when the channel was last updated.
-	lastUpdatedFormat := time.Now().Format(time.RFC3339)
 	for _, t := range channels {
 		XMLPage += fmt.Sprintf(`
 			<sitemap>
 				<loc>https://dfs.ioi-xd.net/sitemap-%v-%v.xml.gz</loc>
-				<lastmod>%v</lastmod>
-				<changefreq>hourly</changefreq>
-				<priority>1.0</priority>
 			</sitemap>
-		`, guildID, t.ID(), lastUpdatedFormat)
+		`, guildID, t.ID())
 	}
 	XMLPage += XMLSitemapPageFooter
 	return
