@@ -5,9 +5,11 @@ import (
 	"html/template"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/rest"
 	"github.com/disgoorg/snowflake/v2"
 )
 
@@ -54,6 +56,16 @@ func (b *Bot) GetChannelTitle(channelID snowflake.ID) string {
 // Get a channel's threads.
 func (b *Bot) GetThreadsInChannel(channelID snowflake.ID) []discord.GuildThread {
 	channels := b.Client.Caches().Channels().GuildThreadsInChannel(channelID)
+
+	// archived threads aren't cached so we need to get those and add them
+	threadsObj := rest.NewThreads(b.Client.Rest())
+	archivedChannels, err := threadsObj.GetPublicArchivedThreads(channelID, time.Now(), 100)
+	// todo: handle the error more properly
+	if err == nil {
+		channels = append(channels, archivedChannels.Threads...)
+	} else {
+		fmt.Println(err)
+	}
 
 	return channels
 }
