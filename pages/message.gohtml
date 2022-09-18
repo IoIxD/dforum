@@ -6,11 +6,11 @@
     {{GetGuildName $guildID}} > {{GetChannelTitle $channelID}} >
     <b>{{GetChannelTitle $postID}}</b>
 </span>
-
 {{$messages := GetMessagesInChannel $postID}}
 {{if $messages.Error}}
     <code>error while getting the post; {{$messages.Error}}</em>
 {{else}}
+    <title>{{GetChannelTitle $postID}}</title>
     {{range $i, $v := $messages.Messages}}
         {{if or $v.Content $v.Attachments}}
             <span class='post'>
