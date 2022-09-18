@@ -102,7 +102,6 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 	case 0:
 		XMLResult = XMLPageGenGuilds()
 	case 1:
-		fmt.Println(parts)
 		if parts[0] == "" {
 			XMLResult = XMLPageGenGuilds()
 		} else {
@@ -112,22 +111,8 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 				fmt.Println(err)
 				break
 			}
-			XMLResult = XMLPageGenGuildChannels(snowflake.ID(guildID))
+			XMLResult = XMLPageGenGuildChannelThreads(snowflake.ID(guildID))
 		}
-	case 2:
-		// convert the guild id to a snowflake
-		guildID, err := strconv.Atoi(parts[0])
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-		// convert the channel id to a snowflake
-		chanID, err := strconv.Atoi(parts[1])
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-		XMLResult = XMLPageGenGuildChannelThreads(snowflake.ID(guildID), snowflake.ID(chanID))
 	}
 	if gz {
 		return GZIPString(XMLResult), true
@@ -165,22 +150,27 @@ func XMLPageGenGuildChannels(guildID snowflake.ID) (XMLPage string) {
 	XMLPage += XMLSitemapPageFooter
 	return
 }
-func XMLPageGenGuildChannelThreads(guildID, chanID snowflake.ID) (XMLPage string) {
+
+func XMLPageGenGuildChannelThreads(guildID snowflake.ID) (XMLPage string) {
 	XMLPage = XMLPageHeader
 	XMLPage += XMLURLPageHeader
-	threads := Client.GetThreadsInChannel(chanID)
-	// todo: have this actually reflect when the channel was last updated.
-	lastUpdatedFormat := time.Now().Format(time.RFC3339)
-	for _, t := range threads {
 
-		XMLPage += fmt.Sprintf(`
-			<url>
-				<loc>https://dfs.ioi-xd.net/%v/%v/%v</loc>
-				<lastmod>%v</lastmod>
-				<changefreq>hourly</changefreq>
-				<priority>1.0</priority>
-			</url>
-		`, guildID, chanID, t.ID(), lastUpdatedFormat)
+	channels := Client.GetForums(guildID)
+	for _, c := range channels {
+		threads := Client.GetThreadsInChannel(c.ID())
+		// todo: have this actually reflect when the channel was last updated.
+		lastUpdatedFormat := time.Now().Format(time.RFC3339)
+		for _, t := range threads {
+
+			XMLPage += fmt.Sprintf(`
+				<url>
+					<loc>https://dfs.ioi-xd.net/%v/%v/%v</loc>
+					<lastmod>%v</lastmod>
+					<changefreq>hourly</changefreq>
+					<priority>1.0</priority>
+				</url>
+			`, guildID, c.ID(), t.ID(), lastUpdatedFormat)
+		}
 	}
 	XMLPage += XMLURLPageFooter
 	return
