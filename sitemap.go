@@ -13,10 +13,12 @@ import (
 )
 
 const (
+	XMLIndexSettings     = `xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"`
+	XMLListSettings      = `xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml"`
 	XMLPageHeader        = `<?xml version="1.0" encoding="UTF-8"?>`
-	XMLURLPageHeader     = `<urlset xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`
-	XMLSitemapPageHeader = `<sitemapset xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`
-	XMLSitemapPageFooter = `</sitemapset>`
+	XMLURLPageHeader     = `<urlset ` + XMLListSettings + `>`
+	XMLSitemapPageHeader = `<sitemapindex ` + XMLIndexSettings + `>`
+	XMLSitemapPageFooter = `</sitemapindex>`
 	XMLURLPageFooter     = `</urlset>`
 )
 
@@ -139,14 +141,6 @@ func XMLPageGenGuilds() (XMLPage string) {
 	lastUpdatedFormat := time.Now().Format(time.RFC3339)
 	XMLPage = XMLPageHeader
 	XMLPage += XMLSitemapPageHeader
-	XMLPage += `
-		<url>
-			<loc>https://dfs.ioi-xd.net/</loc>
-			<lastmod>` + lastUpdatedFormat + `</lastmod>
-			<changefreq>hourly</changefreq>
-			<priority>1.0</priority>
-		</url>`
-
 	guilds := Client.Client.Caches().Guilds().All()
 	for _, g := range guilds {
 		XMLPage += fmt.Sprintf(`
