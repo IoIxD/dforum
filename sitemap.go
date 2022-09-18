@@ -166,7 +166,7 @@ func XMLPageGenGuildChannelThreads(guildID snowflake.ID) (XMLPage string) {
 				<url>
 					<loc>https://dfs.ioi-xd.net/%v/%v/%v</loc>
 					<lastmod>%v</lastmod>
-					<changefreq>hourly</changefreq>
+					`+ /*<changefreq>hourly</changefreq>*/ `
 					<priority>1.0</priority>
 				</url>
 			`, guildID, c.ID(), t.ID(), lastUpdatedFormat)
