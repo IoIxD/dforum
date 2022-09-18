@@ -8,7 +8,7 @@ import (
 
 func FuncMap(b *Bot) template.FuncMap {
 	return template.FuncMap{
-		"GetAvatarURL":					b.GetAvatarURL,
+		"GetAvatarURL":         b.GetAvatarURL,
 		"GetForums":            b.GetForums,
 		"GetGuildName":         b.GetGuildName,
 		"GetThreadsInChannel":  b.GetThreadsInChannel,
