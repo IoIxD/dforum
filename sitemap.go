@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	XMLPageHeader = `<?xml version="1.0" encoding="UTF-8"?>
-	<urlset xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`
+	XMLPageHeader        = `<?xml version="1.0" encoding="UTF-8"?>`
+	XMLURLPageHeader     = `<urlset xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`
+	XMLSitemapPageHeader = `<sitemapset xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`
 )
 
 var dontCare = strings.NewReplacer(
@@ -135,6 +136,7 @@ func XMLPageGenGuilds() (XMLPage string) {
 	// todo: have this actually reflect when the channel was last updated.
 	lastUpdatedFormat := time.Now().Format(time.RFC3339)
 	XMLPage = XMLPageHeader
+	XMLPage += XMLSitemapPageHeader
 	XMLPage += `
 		<url>
 			<loc>https://dfs.ioi-xd.net/</loc>
@@ -146,12 +148,12 @@ func XMLPageGenGuilds() (XMLPage string) {
 	guilds := Client.Client.Caches().Guilds().All()
 	for _, g := range guilds {
 		XMLPage += fmt.Sprintf(`
-			<url>
+			<sitemap>
 				<loc>https://dfs.ioi-xd.net/sitemap-%v.xml.gz</loc>
 				<lastmod>%v</lastmod>
 				<changefreq>hourly</changefreq>
 				<priority>1.0</priority>
-			</url>
+			</sitemap>
 		`, g.ID, lastUpdatedFormat)
 	}
 	XMLPage += `</urlset>`
@@ -160,17 +162,18 @@ func XMLPageGenGuilds() (XMLPage string) {
 
 func XMLPageGenGuildChannels(guildID snowflake.ID) (XMLPage string) {
 	XMLPage = XMLPageHeader
+	XMLPage += XMLSitemapPageHeader
 	channels := Client.GetForums(guildID)
 	// todo: have this actually reflect when the channel was last updated.
 	lastUpdatedFormat := time.Now().Format(time.RFC3339)
 	for _, t := range channels {
 		XMLPage += fmt.Sprintf(`
-			<url>
+			<sitemap>
 				<loc>https://dfs.ioi-xd.net/sitemap-%v-%v.xml.gz</loc>
 				<lastmod>%v</lastmod>
 				<changefreq>hourly</changefreq>
 				<priority>1.0</priority>
-			</url>
+			</sitemap>
 		`, guildID, t.ID(), lastUpdatedFormat)
 	}
 	XMLPage += `</urlset>`
@@ -178,6 +181,7 @@ func XMLPageGenGuildChannels(guildID snowflake.ID) (XMLPage string) {
 }
 func XMLPageGenGuildChannelThreads(guildID, chanID snowflake.ID) (XMLPage string) {
 	XMLPage = XMLPageHeader
+	XMLPage += XMLURLPageHeader
 	threads := Client.GetThreadsInChannel(chanID)
 	// todo: have this actually reflect when the channel was last updated.
 	lastUpdatedFormat := time.Now().Format(time.RFC3339)
