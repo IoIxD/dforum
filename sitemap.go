@@ -68,7 +68,6 @@ func init() {
 }
 
 func XMLServe(w http.ResponseWriter, r *http.Request, pagename string) {
-	// TODO: caching system
 	var XMLPage []byte
 	var gz bool
 	obj, ok := Caches[pagename]
@@ -147,26 +146,6 @@ func XMLPageGenGuilds() string {
 	for _, g := range guilds {
 		sitemapIndex.Push(Sitemap{
 			Location: fmt.Sprintf("https://dfs.ioi-xd.net/sitemap-%v.xml.gz", g.ID),
-		})
-	}
-	output, err := xml.Marshal(sitemapIndex)
-	if err != nil {
-		return err.Error()
-	}
-	XMLPage.Write([]byte(XMLSitemapPageHeader))
-	XMLPage.Write(output)
-	XMLPage.Write([]byte(XMLSitemapPageFooter))
-	return XMLPage.String()
-}
-
-func XMLPageGenGuildChannels(guildID snowflake.ID) string {
-	var XMLPage bytes.Buffer
-	var sitemapIndex SitemapIndex
-
-	channels := Client.GetForums(guildID)
-	for _, c := range channels {
-		sitemapIndex.Push(Sitemap{
-			Location: fmt.Sprintf("https://dfs.ioi-xd.net/sitemap-%v-%v.xml.gz", guildID, c.ID()),
 		})
 	}
 	output, err := xml.Marshal(sitemapIndex)
