@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/xml"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -36,6 +37,18 @@ type CacheObject struct {
 
 var Caches map[string]CacheObject
 
+type Sitemap struct {
+	Location string `xml:"loc"`
+}
+type SitemapIndex []Sitemap
+type URL struct {
+	Location  string  `xml:"loc"`
+	LastMod   string  `xml:"lastmod"`
+	Frequency string  `xml:"changefreq"`
+	Priority  float32 `xml:"priority"`
+}
+type URLSet []URL
+
 var XMLPage string           // The xml page to serve.
 var LastUpdatedFormat string // obsolete but i'm too tired to remove it
 
@@ -44,13 +57,11 @@ func init() {
 }
 
 func XMLServe(w http.ResponseWriter, r *http.Request, pagename string) {
-	// TODO: caching system
 	var XMLPage []byte
 	var gz bool
 	obj, ok := Caches[pagename]
 	// If it's not existent, cache it.
 	if !ok {
-		fmt.Printf("%v doesn't exist, caching.\n", pagename)
 		XMLPage, gz = XMLPageGen(pagename)
 
 		newOBJ := CacheObject{
@@ -63,15 +74,12 @@ func XMLServe(w http.ResponseWriter, r *http.Request, pagename string) {
 		// Otherwise, search the cache.
 		lastUpdated := obj.LastUpdated
 		// If the time 30 minutes ago is greater then the updated time
-		if (time.Now().Unix() - int64(time.Minute*30)) > lastUpdated {
+		if (time.Now().Unix() - int64(time.Hour*6)) > lastUpdated {
 			// Update the cache
 			obj.XMLPage, obj.GZipped = XMLPageGen(pagename)
 			obj.LastUpdated = time.Now().Unix()
-			fmt.Printf("%v is outdated, re-caching.\n", pagename)
-		} else {
-			// Otherwise, serve that cached version.
-			fmt.Printf("%v is cached, serving that.\n", pagename)
 		}
+		// Otherwise, serve that cached version.
 		XMLPage, gz = obj.XMLPage, obj.GZipped
 	}
 	w.Header().Set("Content-Name", pagename)
@@ -85,10 +93,13 @@ func XMLServe(w http.ResponseWriter, r *http.Request, pagename string) {
 
 	w.Write(XMLPage)
 }
+
+// todo: scrap this function in favor of go-chi's pagnation system.
 func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 	// get the values and stuff we want from the pagename
 	pagename = dontCare.Replace(pagename)
 
+	// whether or not to serve the gzipped file
 	if strings.Contains(pagename, ".gz") {
 		pagename = strings.Replace(pagename, ".gz", "", 1)
 		gz = true
@@ -98,22 +109,18 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 
 	var XMLResult string
 	parts := strings.Split(pagename, "-")
-	switch len(parts) {
-	case 0:
+
+	if parts[0] == "" {
 		XMLResult = XMLPageGenGuilds()
-	case 1:
-		if parts[0] == "" {
-			XMLResult = XMLPageGenGuilds()
-		} else {
-			// convert the guild id to a snowflake
-			guildID, err := strconv.Atoi(parts[0])
-			if err != nil {
-				fmt.Println(err)
-				break
-			}
-			XMLResult = XMLPageGenGuildChannelThreads(snowflake.ID(guildID))
+	} else {
+		var guildID int
+		guildID, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return []byte(err.Error()), false
 		}
+		XMLResult = XMLPageGenThreads(snowflake.ID(guildID))
 	}
+
 	if gz {
 		return GZIPString(XMLResult), true
 	} else {
@@ -121,39 +128,29 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 	}
 }
 
-func XMLPageGenGuilds() (XMLPage string) {
-	XMLPage = XMLPageHeader
-	XMLPage += XMLSitemapPageHeader
+func XMLPageGenGuilds() string {
+	var XMLPage bytes.Buffer
+	var sitemapIndex SitemapIndex
+
 	guilds := Client.Client.Caches().Guilds().All()
 	for _, g := range guilds {
-		XMLPage += fmt.Sprintf(`
-			<sitemap>
-				<loc>https://dfs.ioi-xd.net/sitemap-%v.xml.gz</loc>
-			</sitemap>
-		`, g.ID)
+		sitemapIndex = append(sitemapIndex, Sitemap{
+			Location: fmt.Sprintf("https://dfs.ioi-xd.net/sitemap-%v.xml.gz", g.ID),
+		})
 	}
-	XMLPage += XMLSitemapPageFooter
-	return
+	output, err := xml.Marshal(sitemapIndex)
+	if err != nil {
+		return err.Error()
+	}
+	XMLPage.Write([]byte(XMLSitemapPageHeader))
+	XMLPage.Write(output)
+	XMLPage.Write([]byte(XMLSitemapPageFooter))
+	return XMLPage.String()
 }
 
-func XMLPageGenGuildChannels(guildID snowflake.ID) (XMLPage string) {
-	XMLPage = XMLPageHeader
-	XMLPage += XMLSitemapPageHeader
-	channels := Client.GetForums(guildID)
-	for _, t := range channels {
-		XMLPage += fmt.Sprintf(`
-			<sitemap>
-				<loc>https://dfs.ioi-xd.net/sitemap-%v-%v.xml.gz</loc>
-			</sitemap>
-		`, guildID, t.ID())
-	}
-	XMLPage += XMLSitemapPageFooter
-	return
-}
-
-func XMLPageGenGuildChannelThreads(guildID snowflake.ID) (XMLPage string) {
-	XMLPage = XMLPageHeader
-	XMLPage += XMLURLPageHeader
+func XMLPageGenThreads(guildID snowflake.ID) string {
+	var XMLPage bytes.Buffer
+	var urlIndex URLSet
 
 	channels := Client.GetForums(guildID)
 	for _, c := range channels {
@@ -161,25 +158,29 @@ func XMLPageGenGuildChannelThreads(guildID snowflake.ID) (XMLPage string) {
 		// todo: have this actually reflect when the channel was last updated.
 		lastUpdatedFormat := time.Now().Format(time.RFC3339)
 		for _, t := range threads {
-
-			XMLPage += fmt.Sprintf(`
-				<url>
-					<loc>https://dfs.ioi-xd.net/%v/%v/%v</loc>
-					<lastmod>%v</lastmod>
-					`+ /*<changefreq>hourly</changefreq>*/ `
-					<priority>1.0</priority>
-				</url>
-			`, guildID, c.ID(), t.ID(), lastUpdatedFormat)
+			urlIndex = append(urlIndex, URL{
+				Location:  fmt.Sprintf("https://dfs.ioi-xd.net/%v/%v/%v", guildID, c.ID(), t.ID()),
+				LastMod:   lastUpdatedFormat,
+				Frequency: "hourly",
+				Priority:  1.0,
+			})
 		}
 	}
-	XMLPage += XMLURLPageFooter
-	return
+	output, err := xml.Marshal(urlIndex)
+	if err != nil {
+		return err.Error()
+	}
+	XMLPage.Write([]byte(XMLURLPageHeader))
+	XMLPage.Write(output)
+	XMLPage.Write([]byte(XMLURLPageFooter))
+	return XMLPage.String()
 }
 
 func GZIPString(page string) (result []byte) {
 	var b bytes.Buffer
 	gzipWriter := gzip.NewWriter(&b)
 	_, err := gzipWriter.Write([]byte(page))
+	// todo: better error handling.
 	if err != nil {
 		fmt.Println(err)
 		return
