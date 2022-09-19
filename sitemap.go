@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/xml"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -35,6 +36,29 @@ type CacheObject struct {
 }
 
 var Caches map[string]CacheObject
+
+type Sitemap struct {
+	Location string `xml:"loc"`
+}
+type SitemapIndex []Sitemap
+
+func (s *SitemapIndex) Push(index Sitemap) {
+	newIndex := append(*s, index)
+	s = &newIndex
+}
+
+type URL struct {
+	Location  string  `xml:"loc"`
+	LastMod   string  `xml:"lastmod"`
+	Frequency string  `xml:"changefreq"`
+	Priority  float32 `xml:"priority"`
+}
+type URLSet []URL
+
+func (u *URLSet) Push(index URL) {
+	newIndex := append(*u, index)
+	u = &newIndex
+}
 
 var XMLPage string           // The xml page to serve.
 var LastUpdatedFormat string // obsolete but i'm too tired to remove it
@@ -98,21 +122,15 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 
 	var XMLResult string
 	parts := strings.Split(pagename, "-")
-	switch len(parts) {
-	case 0:
+	if parts[0] == "" {
 		XMLResult = XMLPageGenGuilds()
-	case 1:
-		if parts[0] == "" {
-			XMLResult = XMLPageGenGuilds()
-		} else {
-			// convert the guild id to a snowflake
-			guildID, err := strconv.Atoi(parts[0])
-			if err != nil {
-				fmt.Println(err)
-				break
-			}
-			XMLResult = XMLPageGenGuildChannelThreads(snowflake.ID(guildID))
+	} else {
+		var guildID int
+		guildID, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return []byte(err.Error()), false
 		}
+		XMLResult = XMLPageGenGuildChannelThreads(snowflake.ID(guildID))
 	}
 	if gz {
 		return GZIPString(XMLResult), true
@@ -121,39 +139,49 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 	}
 }
 
-func XMLPageGenGuilds() (XMLPage string) {
-	XMLPage = XMLPageHeader
-	XMLPage += XMLSitemapPageHeader
+func XMLPageGenGuilds() string {
+	var XMLPage bytes.Buffer
+	var sitemapIndex SitemapIndex
+
 	guilds := Client.Client.Caches().Guilds().All()
 	for _, g := range guilds {
-		XMLPage += fmt.Sprintf(`
-			<sitemap>
-				<loc>https://dfs.ioi-xd.net/sitemap-%v.xml.gz</loc>
-			</sitemap>
-		`, g.ID)
+		sitemapIndex.Push(Sitemap{
+			Location: fmt.Sprintf("https://dfs.ioi-xd.net/sitemap-%v.xml.gz", g.ID),
+		})
 	}
-	XMLPage += XMLSitemapPageFooter
-	return
+	output, err := xml.Marshal(sitemapIndex)
+	if err != nil {
+		return err.Error()
+	}
+	XMLPage.Write([]byte(XMLSitemapPageHeader))
+	XMLPage.Write(output)
+	XMLPage.Write([]byte(XMLSitemapPageFooter))
+	return XMLPage.String()
 }
 
-func XMLPageGenGuildChannels(guildID snowflake.ID) (XMLPage string) {
-	XMLPage = XMLPageHeader
-	XMLPage += XMLSitemapPageHeader
+func XMLPageGenGuildChannels(guildID snowflake.ID) string {
+	var XMLPage bytes.Buffer
+	var sitemapIndex SitemapIndex
+
 	channels := Client.GetForums(guildID)
-	for _, t := range channels {
-		XMLPage += fmt.Sprintf(`
-			<sitemap>
-				<loc>https://dfs.ioi-xd.net/sitemap-%v-%v.xml.gz</loc>
-			</sitemap>
-		`, guildID, t.ID())
+	for _, c := range channels {
+		sitemapIndex.Push(Sitemap{
+			Location: fmt.Sprintf("https://dfs.ioi-xd.net/sitemap-%v-%v.xml.gz", guildID, c.ID()),
+		})
 	}
-	XMLPage += XMLSitemapPageFooter
-	return
+	output, err := xml.Marshal(sitemapIndex)
+	if err != nil {
+		return err.Error()
+	}
+	XMLPage.Write([]byte(XMLSitemapPageHeader))
+	XMLPage.Write(output)
+	XMLPage.Write([]byte(XMLSitemapPageFooter))
+	return XMLPage.String()
 }
 
-func XMLPageGenGuildChannelThreads(guildID snowflake.ID) (XMLPage string) {
-	XMLPage = XMLPageHeader
-	XMLPage += XMLURLPageHeader
+func XMLPageGenGuildChannelThreads(guildID snowflake.ID) string {
+	var XMLPage bytes.Buffer
+	var urlIndex URLSet
 
 	channels := Client.GetForums(guildID)
 	for _, c := range channels {
@@ -161,19 +189,22 @@ func XMLPageGenGuildChannelThreads(guildID snowflake.ID) (XMLPage string) {
 		// todo: have this actually reflect when the channel was last updated.
 		lastUpdatedFormat := time.Now().Format(time.RFC3339)
 		for _, t := range threads {
-
-			XMLPage += fmt.Sprintf(`
-				<url>
-					<loc>https://dfs.ioi-xd.net/%v/%v/%v</loc>
-					<lastmod>%v</lastmod>
-					`+ /*<changefreq>hourly</changefreq>*/ `
-					<priority>1.0</priority>
-				</url>
-			`, guildID, c.ID(), t.ID(), lastUpdatedFormat)
+			urlIndex.Push(URL{
+				Location:  fmt.Sprintf("https://dfs.ioi-xd.net/%v/%v/%v", guildID, c.ID(), t.ID()),
+				LastMod:   lastUpdatedFormat,
+				Frequency: "hourly",
+				Priority:  1.0,
+			})
 		}
 	}
-	XMLPage += XMLURLPageFooter
-	return
+	output, err := xml.Marshal(urlIndex)
+	if err != nil {
+		return err.Error()
+	}
+	XMLPage.Write([]byte(XMLURLPageHeader))
+	XMLPage.Write(output)
+	XMLPage.Write([]byte(XMLURLPageHeader))
+	return XMLPage.String()
 }
 
 func GZIPString(page string) (result []byte) {
