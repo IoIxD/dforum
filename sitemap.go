@@ -113,8 +113,9 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 	if parts[0] == "" {
 		XMLResult = XMLPageGenGuilds()
 	} else {
+		fmt.Println(parts)
 		var guildID int
-		guildID, err := strconv.Atoi(parts[1])
+		guildID, err := strconv.Atoi(parts[0])
 		if err != nil {
 			return []byte(err.Error()), false
 		}
