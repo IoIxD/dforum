@@ -19,6 +19,9 @@ pre {
 p + pre {
     margin-left: 0.5em;
 }
+p + br + p {
+    margin-top: -2em;
+}
 
 .topics, .threads {
     display: block;

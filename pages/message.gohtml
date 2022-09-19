@@ -11,27 +11,46 @@
     <code>error while getting the post; {{$messages.Error}}</em>
 {{else}}
     <title>{{GetChannelTitle $postID}}</title>
-    {{range $i, $v := $messages.Messages}}
+    {{$lastAuthor := ""}}
+    {{$wasDupLastTime := true}}
+    {{range $_, $v := $messages.Messages}}
         {{if or $v.Content $v.Attachments}}
-            <span class='post'>
-                <span class='flex'>
-                    <span class='header'>
-                        {{PrettyTime $v.CreatedAt}}
-                    </span>
-                </span>
-                <span class='flex'>
-                    <span class='userinfo'>
-                        {{$v.Author.Username}}<br>
-                        <img height="128" src="{{GetAvatarURL $v.Author}}">
-                    </span>
-                    <span class='postinfo'>
-                        {{FormatDiscordThings $guildID $v.Content}}<br>
-                        {{range $i, $n := $v.Attachments}}
-                            <a href="{{$n.URL}}"><img src="{{$n.URL}}"></a>
-                        {{end}}
+            {{if eq $lastAuthor $v.Author.Username}}
+                {{$wasDupLastTime = true}}
+            {{else}}
+                {{if $wasDupLastTime}}
+                    {{template "postfooter" $v}}
+                {{end}}
+
+                {{template "postheader" $v}}
+            {{end}}
+
+            {{FormatDiscordThings $guildID .Content}}<br>
+            {{range $i, $n := .Attachments}}
+                <a href="{{$n.URL}}"><img src="{{$n.URL}}"></a>
+            {{end}}
+        {{end}}
+        {{$lastAuthor = $v.Author.Username}}
+    {{end}}
+{{end}}
+
+{{ define "postheader"}}
+    <span class='post'>
+        <span class='flex'>
+            <span class='header'>
+                {{PrettyTime .CreatedAt}}
+            </span>
+        </span>
+        <span class='flex'>
+            <span class='userinfo'>
+                {{.Author.Username}}<br>
+                <img height="128" src="{{GetAvatarURL .Author}}">
+            </span>
+            <span class='postinfo'>
+{{end}}
+
+{{ define "postfooter" }}
                     </span>
                 </span>
             </span>
-        {{end}}
-    {{end}}
 {{end}}
