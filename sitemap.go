@@ -129,7 +129,7 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 		if err != nil {
 			return []byte(err.Error()), false
 		}
-		XMLResult = XMLPageGenGuildChannelThreads(snowflake.ID(guildID))
+		XMLResult = XMLPageGenThreads(snowflake.ID(guildID))
 	}
 	if gz {
 		return GZIPString(XMLResult), true
@@ -158,7 +158,7 @@ func XMLPageGenGuilds() string {
 	return XMLPage.String()
 }
 
-func XMLPageGenGuildChannelThreads(guildID snowflake.ID) string {
+func XMLPageGenThreads(guildID snowflake.ID) string {
 	var XMLPage bytes.Buffer
 	var urlIndex URLSet
 
