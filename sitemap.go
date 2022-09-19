@@ -74,7 +74,7 @@ func XMLServe(w http.ResponseWriter, r *http.Request, pagename string) {
 		// Otherwise, search the cache.
 		lastUpdated := obj.LastUpdated
 		// If the time 30 minutes ago is greater then the updated time
-		if (time.Now().Unix() - int64(time.Minute*30)) > lastUpdated {
+		if (time.Now().Unix() - int64(time.Hour*6)) > lastUpdated {
 			// Update the cache
 			obj.XMLPage, obj.GZipped = XMLPageGen(pagename)
 			obj.LastUpdated = time.Now().Unix()
