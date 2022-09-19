@@ -113,7 +113,6 @@ func XMLPageGen(pagename string) (XMLPage []byte, gz bool) {
 	if parts[0] == "" {
 		XMLResult = XMLPageGenGuilds()
 	} else {
-		fmt.Println(parts)
 		var guildID int
 		guildID, err := strconv.Atoi(parts[0])
 		if err != nil {
@@ -181,6 +180,7 @@ func GZIPString(page string) (result []byte) {
 	var b bytes.Buffer
 	gzipWriter := gzip.NewWriter(&b)
 	_, err := gzipWriter.Write([]byte(page))
+	// todo: better error handling.
 	if err != nil {
 		fmt.Println(err)
 		return
