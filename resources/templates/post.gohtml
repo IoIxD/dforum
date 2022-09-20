@@ -34,10 +34,14 @@
                     {{end}}
                     {{end}}
                     <span class='reactions'>
-                        {{range (index . 0).Reactions}}
+                        {{range (index . 0).Reactions}}                            
                             <span class='reaction'>
+                                {{if .Emoji.IsCustom}}
+                                    <img class='emoji' src='https://cdn.discordapp.com/emojis/{{.Emoji.ID}}.webp?size=40'>
+                                {{else}}
+                                    {{.Emoji}}
+                                {{end}}
                                 <span class='count'>{{.Count}}</span>
-                                <img class='emoji' src='https://cdn.discordapp.com/emojis/{{.Emoji.ID}}.webp?size=40'>
                             </span>
                         {{end}}
                     </span>
