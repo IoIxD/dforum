@@ -114,7 +114,8 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		Guild         *discord.Guild
 		ForumChannels []ForumChannel
-	}{Guild: guild}
+		ShowNSFW      bool
+	}{Guild: guild, ShowNSFW: (r.URL.Query().Get("nsfw") == "true")}
 	channels, err := s.discord.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -153,10 +154,11 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := struct {
-		Guild *discord.Guild
-		Forum *discord.Channel
-		Posts []discord.Channel
-	}{guild, forum, nil}
+		Guild    *discord.Guild
+		Forum    *discord.Channel
+		Posts    []discord.Channel
+		ShowNSFW bool
+	}{guild, forum, nil, (r.URL.Query().Get("nsfw") == "true")}
 	guildThreads, err := s.discord.ActiveThreads(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -189,6 +191,14 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		Post          *discord.Channel
 		MessageGroups [][]Message
 	}{guild, forum, post, nil}
+
+	if forum.NSFW && !(r.URL.Query().Get("nsfw") == "true") {
+		s.executeTemplate(w, "header.gohtml", nil)
+		s.executeTemplate(w, "nsfw.gohtml", nil)
+		s.executeTemplate(w, "footer.gohtml", nil)
+		return
+	}
+
 	msgs, err := s.discord.Client.Messages(post.ID, 0)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
