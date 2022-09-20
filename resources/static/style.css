@@ -114,6 +114,12 @@ img[src*=SPOILER_]:hover {
 .reactions .reaction .emoji {
     height: 100%;
 }
+
+.badge {
+    background: #bbb;
+    padding: 4px;
+    margin: 4px;
+}
 .top {
     height: 5%;
     display: block;
