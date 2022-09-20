@@ -200,7 +200,9 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	})
 	var msgrps [][]Message
 	i := 0
+	// for each message
 	for _, m := range msgs {
+		// if we're currently at the end of the list of message groups
 		if len(msgrps) == i {
 			grp := []Message{
 				s.message(m),

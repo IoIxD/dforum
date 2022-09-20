@@ -97,7 +97,7 @@ func (s *server) renderContent(m discord.Message) template.HTML {
 		),
 	)
 	renderer.Render(&sb, src, ast)
-	return template.HTML(sb.String())
+	return template.HTML(strings.Replace(sb.String(), "\n", "<br>", 999))
 }
 
 type mentionRenderer struct{}
