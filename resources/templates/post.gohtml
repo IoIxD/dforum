@@ -1,0 +1,40 @@
+{{ template "header.gohtml" .}}
+<span class='nav'>
+    {{.Guild.Name}} > {{.Forum.Name}} >
+    <b>{{.Post.Name}}</b>
+</span>
+{{range .MessageGroups}}
+    <span class='post'>
+        <span class='flex'>
+            <span class='header'>
+                {{PrettyTime (index . 0).ID.Time}}
+            </span>
+        </span>
+        <span class='flex'>
+            <span class='userinfo'>
+                {{(index . 0).Author.Username}}<br>
+                <img height="128" src="{{(index . 0).Author.AvatarURL}}">
+            </span>
+            <span class='postinfo'>
+                {{range .}}
+                {{with .RenderedContent -}}
+                        {{- . -}}
+                {{- end}}
+                {{range .MediaPreviews}}
+                    <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
+                {{end}}
+                {{with .PlainAttachments}}
+                <p>Attachments:
+                <span class="attachments">
+                {{range .}}
+                    <a href="{{.URL}}">{{.Name}}</a>
+                {{end}}
+                </span>
+                </p>
+                {{end}}
+                {{end}}
+            </span>
+        </span>
+    </span>
+{{end}}
+{{ template "footer.gohtml" .}}

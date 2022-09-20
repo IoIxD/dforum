@@ -27,6 +27,10 @@ p + br + p {
     display: block;
 }
 
+.post-info {
+    white-space: pre-line;
+}
+
 .title, .threadnum {
     padding: 5px;
 }

@@ -1,0 +1,6 @@
+{{ template "header.gohtml" }}
+<h2>{{.StatusCode}} {{.StatusText}}</h2>
+{{with .Error}}
+<p>{{.}}</p>
+{{end}}
+{{template "footer.gohtml" }}
