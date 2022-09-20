@@ -27,10 +27,6 @@ p + br + p {
     display: block;
 }
 
-.post-info {
-    white-space: pre-line;
-}
-
 .title, .threadnum {
     padding: 5px;
 }
@@ -79,6 +75,9 @@ p + br + p {
 .postinfo img {
     max-width: 50%;
     margin-bottom:5%;
+}
+.postinfo p {
+    white-space: pre-line;
 }
 
 .top {
