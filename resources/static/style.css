@@ -23,6 +23,16 @@ p + br + p {
     margin-top: -2em;
 }
 
+img[src*=SPOILER_]:not(:hover) {
+    filter: blur(5px) brightness(10%);
+    overflow: hidden;
+    transition: 0.2s linear;
+    position: relative;
+}
+img[src*=SPOILER_]:hover {
+    transition: 0.2s linear;
+}
+
 .topics, .threads {
     display: block;
 }
