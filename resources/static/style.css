@@ -1,6 +1,6 @@
 body {
     font-family: "Ubuntu";
-    max-width: 75rem;
+    min-width: 90vw;
     display:block;
     margin: 0 auto;
     padding: 3rem;
@@ -63,6 +63,10 @@ img[src*=SPOILER_]:hover {
 }
 .flex {
     display: flex;
+    position: relative;
+}
+.flex.column {
+    flex-direction: column;
 }
 
 .header {
@@ -81,6 +85,8 @@ img[src*=SPOILER_]:hover {
 }
 .postinfo {
     flex: 4;
+    padding-bottom: 2em;
+    word-break: break-word;
 }
 .postinfo img {
     max-width: 50%;
@@ -90,6 +96,16 @@ img[src*=SPOILER_]:hover {
     white-space: pre-line;
 }
 
+.reactions .reaction {
+    display: inline-block;
+    height: 1em;
+    padding: 0.25em;
+    background: #ddd;
+}
+
+.reactions .reaction .emoji {
+    height: 100%;
+}
 .top {
     height: 5%;
     display: block;
@@ -105,4 +121,11 @@ img[src*=SPOILER_]:hover {
     padding: 15px;
     margin: 10px 0 50px 0;
     background: #ddd;
+}
+/* mobile */
+
+@media (max-width: 600px) {
+    .postinfo img {
+        max-width: 100%;
+    }
 }

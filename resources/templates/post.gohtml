@@ -15,24 +15,33 @@
                 {{(index . 0).Author.Username}}<br>
                 <img height="128" src="{{(index . 0).Author.AvatarURL}}">
             </span>
-            <span class='postinfo'>
-                {{range .}}
-                {{with .RenderedContent -}}
-                        {{- . -}}
-                {{- end}}
-                {{range .MediaPreviews}}
-                    <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
-                {{end}}
-                {{with .PlainAttachments}}
-                <p>Attachments:
-                <span class="attachments">
-                {{range .}}
-                    <a href="{{.URL}}">{{.Name}}</a>
-                {{end}}
+                <span class='flex column postinfo'>
+                    {{range .}}
+                    {{with .RenderedContent -}}
+                            {{- . -}}
+                    {{- end}}
+                    {{range .MediaPreviews}}
+                        <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
+                    {{end}}
+                    {{with .PlainAttachments}}
+                    <p>Attachments:
+                    <span class="attachments">
+                    {{range .}}
+                        <a href="{{.URL}}">{{.Name}}</a>
+                    {{end}}
+                    </span>
+                    </p>
+                    {{end}}
+                    {{end}}
+                    <span class='reactions'>
+                        {{range (index . 0).Reactions}}
+                            <span class='reaction'>
+                                <span class='count'>{{.Count}}</span>
+                                <img class='emoji' src='https://cdn.discordapp.com/emojis/{{.Emoji.ID}}.webp?size=40'>
+                            </span>
+                        {{end}}
+                    </span>
                 </span>
-                </p>
-                {{end}}
-                {{end}}
             </span>
         </span>
     </span>
