@@ -199,19 +199,13 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		return msgs[i].ID < msgs[j].ID
 	})
 	var msgrps [][]Message
-	i := 0
+	i := -1
 	for _, m := range msgs {
-		if len(msgrps) == i {
-			grp := []Message{
-				s.message(m),
-			}
-			msgrps = append(msgrps, grp)
+		if i == -1 || msgrps[i][0].Author.ID != m.Author.ID {
+			msgrps = append(msgrps, []Message{s.message(m)})
+			i++
 		} else {
-			if msgrps[i][0].Author == m.Author {
-				msgrps[i] = append(msgrps[i], s.message(m))
-			} else {
-				i++
-			}
+			msgrps[i] = append(msgrps[i], s.message(m))
 		}
 	}
 	ctx.MessageGroups = msgrps
