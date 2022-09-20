@@ -33,7 +33,7 @@ func (s *server) getSitemap(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		sitemap := make([]byte, buf.Len())
+		sitemap = make([]byte, buf.Len())
 		copy(sitemap, buf.Bytes())
 		s.sitemap = sitemap
 		s.sitemapUpdated = time.Now()
