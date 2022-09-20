@@ -3,7 +3,6 @@ package main
 import (
 	"html"
 	"html/template"
-	"regexp"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -18,8 +17,6 @@ var Replacer = strings.NewReplacer(
 	"\n", "<br>",
 	"https://discord.com/channels/", "https://dfs.ioi-xd.net/",
 )
-
-var re = regexp.MustCompile(`http(s|)://discord.com/channels/(.*?)/`)
 
 type Message struct {
 	discord.Message
@@ -105,9 +102,7 @@ func (s *server) renderContent(m discord.Message) template.HTML {
 		),
 	)
 	renderer.Render(&sb, src, ast)
-	str := Replacer.Replace(sb.String())
-	str = string(re.ReplaceAll([]byte(str), []byte("<a href='http$1://dfs.ioi-xd.net/$2'>http$1://discordapp.com/$2</a>")))
-	return template.HTML(str)
+	return template.HTML(Replacer.Replace(sb.String()))
 }
 
 type mentionRenderer struct{}
