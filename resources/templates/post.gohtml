@@ -1,20 +1,20 @@
 {{ template "header.gohtml" .}}
 {{$op := ""}}
 {{range .MessageGroups}}
-{{$this := (index . 0)}}
+{{$firstMSG := (index . 0)}}
 <span class='post'>
     <span class='flex'>
         <span class='header'>
-            {{PrettyTime $this.ID.Time}}
+            {{PrettyTime $firstMSG.ID.Time}}
         </span>
     </span>
     <span class='flex'>
         <span class='userinfo'>
-            {{$this.Author.Username}}
-            {{if $this.Author.Bot}}
+            {{$firstMSG.Author.Username}}
+            {{if $firstMSG.Author.Bot}}
                 <span class='badge'>BOT</span>
             {{end}}
-            {{if $this.FromOP}}
+            {{if $firstMSG.FromOP}}
                 <span class='badge'>OP</span>
             {{end}}
             <br><br>
@@ -39,7 +39,7 @@
             {{end}}
             {{end}}
             <span class='reactions'>
-                {{range $this.Reactions}}                            
+                {{range $firstMSG.Reactions}}                            
                     <span class='reaction'>
                         {{if .Emoji.IsCustom}}
                             <img class='emoji' src='https://cdn.discordapp.com/emojis/{{.Emoji.ID}}.webp?size=40'>
