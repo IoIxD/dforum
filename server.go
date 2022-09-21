@@ -153,6 +153,13 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+
+	if forum.NSFW {
+		displayErr(w, http.StatusForbidden,
+			fmt.Errorf("nsfw content is not served"))
+		return
+	}
+
 	ctx := struct {
 		Guild *discord.Guild
 		Forum *discord.Channel
@@ -180,6 +187,12 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if forum.NSFW {
+		displayErr(w, http.StatusForbidden,
+			fmt.Errorf("nsfw content is not served"))
+		return
+	}
+
 	post, ok := s.postFromReq(w, r)
 	if !ok {
 		return
@@ -190,6 +203,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		Post          *discord.Channel
 		MessageGroups [][]Message
 	}{guild, forum, post, nil}
+
 	msgs, err := s.discord.Client.Messages(post.ID, 0)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -202,11 +216,12 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	var msgrps [][]Message
 	i := -1
 	for _, m := range msgs {
+		msg := s.message(m)
 		if i == -1 || msgrps[i][0].Author.ID != m.Author.ID {
-			msgrps = append(msgrps, []Message{s.message(m)})
+			msgrps = append(msgrps, []Message{msg})
 			i++
 		} else {
-			msgrps[i] = append(msgrps[i], s.message(m))
+			msgrps[i] = append(msgrps[i], msg)
 		}
 	}
 	ctx.MessageGroups = msgrps

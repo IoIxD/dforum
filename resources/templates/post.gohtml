@@ -1,40 +1,62 @@
 {{ template "header.gohtml" .}}
-<span class='nav'>
-    {{.Guild.Name}} > {{.Forum.Name}} >
-    <b>{{.Post.Name}}</b>
-</span>
+{{$op := 0}}
+{{if gt (len .MessageGroups) 0}}
+  {{$op = (index (index .MessageGroups 0) 0).Author.ID}}
+{{else}}
+    <em>wind blowing noises</em><br>some dipshit deleted the top post in their thread and not the thread itself...how sad... 
+{{end}}
 {{range .MessageGroups}}
-    <span class='post'>
-        <span class='flex'>
-            <span class='header'>
-                {{PrettyTime (index . 0).ID.Time}}
-            </span>
+{{$firstMSG := (index . 0)}}
+<span class='post'>
+    <span class='flex'>
+        <span class='header'>
+            {{PrettyTime $firstMSG.ID.Time}}
         </span>
-        <span class='flex'>
-            <span class='userinfo'>
-                {{(index . 0).Author.Username}}<br>
-                <img height="128" src="{{(index . 0).Author.AvatarURL}}">
+    </span>
+    <span class='flex'>
+        <span class='userinfo'>
+            {{$firstMSG.Author.Username}}
+            {{if $firstMSG.Author.Bot}}
+                <span class='badge'>BOT</span>
+            {{end}}
+            {{if eq $op $firstMSG.Author.ID}}
+                <span class='badge'>OP</span>
+            {{end}}
+            <br><br>
+            <img height="128" src="{{(index . 0).Author.AvatarURL}}">
+        </span>
+        <span class='flex column postinfo'>
+            {{range .}}
+            {{with .RenderedContent -}}
+                    {{- . -}}
+            {{- end}}
+            {{range .MediaPreviews}}
+                <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
+            {{end}}
+            {{with .PlainAttachments}}
+            <p>Attachments:
+            <span class="attachments">
+            {{range .}}
+                <a href="{{.URL}}">{{.Name}}</a>
+            {{end}}
             </span>
-            <span class='postinfo'>
-                {{range .}}
-                {{with .RenderedContent -}}
-                        {{- . -}}
-                {{- end}}
-                {{range .MediaPreviews}}
-                    <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
-                {{end}}
-                {{with .PlainAttachments}}
-                <p>Attachments:
-                <span class="attachments">
-                {{range .}}
-                    <a href="{{.URL}}">{{.Name}}</a>
-                {{end}}
-                </span>
-                </p>
-                {{end}}
+            </p>
+            {{end}}
+            {{end}}
+            <span class='reactions'>
+                {{range $firstMSG.Reactions}}                            
+                    <span class='reaction'>
+                        {{if .Emoji.IsCustom}}
+                            <img class='emoji' src='https://cdn.discordapp.com/emojis/{{.Emoji.ID}}.webp?size=40'>
+                        {{else}}
+                            {{.Emoji}}
+                        {{end}}
+                        <span class='count'>{{.Count}}</span>
+                    </span>
                 {{end}}
             </span>
         </span>
     </span>
+</span>
 {{end}}
 {{ template "footer.gohtml" .}}

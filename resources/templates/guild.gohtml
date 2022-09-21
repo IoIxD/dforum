@@ -9,14 +9,16 @@
             <span class='threadnum'>Posts</span>
         </span>
     {{range $_, $forum := .ForumChannels}}
-        <span class='flex row'>
-            <span class='title'>
-                <a href="/{{$.Guild.ID}}/{{$forum.ID}}"><b>{{$forum.Name}}</b></a>
+        {{if (not $forum.NSFW)}}
+            <span class='flex row'>
+                <span class='title'>
+                    <a href="/{{$.Guild.ID}}/{{$forum.ID}}"><b>{{$forum.Name}}</b></a>
+                </span>
+                <span class='threadnum'>
+                    {{len $forum.Posts}}
+                </span>
             </span>
-            <span class='threadnum'>
-                {{len $forum.Posts}}
-            </span>
-        </span>
+        {{end}}
     {{end}}
     </span>
 {{ template "footer.gohtml" .}}

@@ -14,7 +14,6 @@ import (
 )
 
 var Replacer = strings.NewReplacer(
-	"\n", "<br>",
 	"https://discord.com/channels/", "https://dfs.ioi-xd.net/",
 )
 
@@ -23,6 +22,7 @@ type Message struct {
 	RenderedContent  template.HTML
 	MediaPreviews    []MediaPreview
 	PlainAttachments []PlainAttachment
+	FromOP           bool
 }
 
 type MediaPreview struct {
@@ -98,6 +98,7 @@ func (s *server) renderContent(m discord.Message) template.HTML {
 		renderer.WithNodeRenderers(
 			util.Prioritized(mdhtml.NewRenderer(), 0),
 			util.Prioritized(mentionRenderer{}, 0),
+			util.Prioritized(emoteRenderer{}, 0),
 			util.Prioritized(inlineRenderer{}, 0),
 		),
 	)
@@ -123,6 +124,23 @@ func (r mentionRenderer) render(writer util.BufWriter, source []byte, n ast.Node
 		case m.GuildRole != nil:
 			writer.WriteString("@")
 			writer.WriteString(html.EscapeString(m.GuildRole.Name))
+		default:
+			writer.WriteString(string(source))
+		}
+	}
+	return ast.WalkContinue, nil
+}
+
+type emoteRenderer struct{}
+
+func (r emoteRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+	reg.Register(discordmd.KindEmoji, r.render)
+}
+func (r emoteRenderer) render(writer util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		e, ok := n.(*discordmd.Emoji)
+		if ok {
+			writer.WriteString(`<img src='https://cdn.discordapp.com/emojis/` + e.ID + `.webp?size=40'></img>`)
 		}
 	}
 	return ast.WalkContinue, nil
