@@ -10,7 +10,7 @@
 <span class='post'>
     <span class='flex'>
         <span class='header'>
-            {{PrettyTime $firstMSG.ID.Time}}
+            {{PrettyTimeSince $firstMSG.ID.Time}} ({{$firstMSG.ID.Time}})
         </span>
     </span>
     <span class='flex'>
@@ -34,13 +34,12 @@
                 <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
             {{end}}
             {{with .PlainAttachments}}
-            <p>Attachments:
             <span class="attachments">
+                Attachments:
             {{range .}}
                 <a href="{{.URL}}">{{.Name}}</a>
             {{end}}
             </span>
-            </p>
             {{end}}
             {{end}}
             <span class='reactions'>
