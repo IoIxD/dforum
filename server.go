@@ -50,6 +50,7 @@ func newServer(discord *state.State, fsys fs.FS) *server {
 			})
 		})
 	})
+	r.Get("/privacy", s.PrivacyPage)
 	r.Get("/static/*", http.FileServer(http.FS(fsys)).ServeHTTP)
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		displayErr(w, http.StatusNotFound, nil)
@@ -152,6 +153,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+
 	ctx := struct {
 		Guild *discord.Guild
 		Forum *discord.Channel
@@ -189,6 +191,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		Post          *discord.Channel
 		MessageGroups [][]Message
 	}{guild, forum, post, nil}
+
 	msgs, err := s.discord.Client.Messages(post.ID, 0)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -201,11 +204,12 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	var msgrps [][]Message
 	i := -1
 	for _, m := range msgs {
+		msg := s.message(m)
 		if i == -1 || msgrps[i][0].Author.ID != m.Author.ID {
-			msgrps = append(msgrps, []Message{s.message(m)})
+			msgrps = append(msgrps, []Message{msg})
 			i++
 		} else {
-			msgrps[i] = append(msgrps[i], s.message(m))
+			msgrps[i] = append(msgrps[i], msg)
 		}
 	}
 	ctx.MessageGroups = msgrps
@@ -249,6 +253,11 @@ func (s *server) forumFromReq(w http.ResponseWriter, r *http.Request) (*discord.
 		}
 		return nil, false
 	}
+	if forum.NSFW {
+		displayErr(w, http.StatusForbidden,
+			errors.New("NSFW content is not served"))
+		return nil, false
+	}
 	return forum, true
 }
 
@@ -270,4 +279,8 @@ func (s *server) postFromReq(w http.ResponseWriter, r *http.Request) (*discord.C
 		return nil, false
 	}
 	return post, true
+}
+
+func (s *server) PrivacyPage(w http.ResponseWriter, r *http.Request) {
+	s.executeTemplate(w, "privacy.gohtml", nil)
 }

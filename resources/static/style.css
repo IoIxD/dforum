@@ -1,6 +1,6 @@
 body {
-    font-family: "Ubuntu";
-    max-width: 75rem;
+    font-family: "Ubuntu", sans-serif;
+    min-width: 90vw;
     display:block;
     margin: 0 auto;
     padding: 3rem;
@@ -11,6 +11,16 @@ body {
 a {
     color: #03c;
     text-decoration: none;
+}
+
+blockquote {
+    background: #f9f9f9;
+    border-left: 3px solid #ccc;
+    margin: 1.5em 10px;
+    padding: 0.5em 10px;
+}
+blockquote p {
+    display: inline-block;
 }
 
 pre {
@@ -35,6 +45,14 @@ img[src*=SPOILER_]:hover {
 
 .topics, .threads {
     display: block;
+}
+
+.topics button {
+    float: right;
+    border: none;
+    outline: none;
+    padding: 5px;
+    background: #ddd;
 }
 
 .title, .threadnum {
@@ -63,6 +81,10 @@ img[src*=SPOILER_]:hover {
 }
 .flex {
     display: flex;
+    position: relative;
+}
+.flex.column {
+    flex-direction: column;
 }
 
 .header {
@@ -81,6 +103,8 @@ img[src*=SPOILER_]:hover {
 }
 .postinfo {
     flex: 4;
+    padding-bottom: 2em;
+    word-break: break-word;
 }
 .postinfo img {
     max-width: 50%;
@@ -90,6 +114,22 @@ img[src*=SPOILER_]:hover {
     white-space: pre-line;
 }
 
+.reactions .reaction {
+    display: inline-block;
+    height: 1em;
+    padding: 0.25em;
+    background: #ddd;
+}
+
+.reactions .reaction .emoji {
+    height: 100%;
+}
+
+.badge {
+    background: #bbb;
+    padding: 4px;
+    margin: 4px;
+}
 .top {
     height: 5%;
     display: block;
@@ -105,4 +145,12 @@ img[src*=SPOILER_]:hover {
     padding: 15px;
     margin: 10px 0 50px 0;
     background: #ddd;
+}
+
+/* mobile */
+
+@media (max-width: 600px) {
+    .postinfo img {
+        max-width: 100%;
+    }
 }
