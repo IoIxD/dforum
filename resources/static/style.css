@@ -1,5 +1,5 @@
 body {
-    font-family: "Ubuntu";
+    font-family: "Ubuntu", sans-serif;
     min-width: 90vw;
     display:block;
     margin: 0 auto;
