@@ -14,7 +14,6 @@ import (
 )
 
 var Replacer = strings.NewReplacer(
-	"\n", "<br>",
 	"https://discord.com/channels/", "https://dfs.ioi-xd.net/",
 )
 
