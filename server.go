@@ -215,12 +215,18 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	})
 	var msgrps [][]Message
 	i := -1
+	var op discord.User
 	for _, m := range msgs {
+		if op.ID == 0 {
+			op = s.message(m).Author
+		}
+		msg := s.message(m)
+		msg.FromOP = (m.Author == op)
 		if i == -1 || msgrps[i][0].Author.ID != m.Author.ID {
-			msgrps = append(msgrps, []Message{s.message(m)})
+			msgrps = append(msgrps, []Message{msg})
 			i++
 		} else {
-			msgrps[i] = append(msgrps[i], s.message(m))
+			msgrps[i] = append(msgrps[i], msg)
 		}
 	}
 	ctx.MessageGroups = msgrps

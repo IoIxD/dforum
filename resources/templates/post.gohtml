@@ -1,14 +1,7 @@
 {{ template "header.gohtml" .}}
-<span class='nav'>
-    {{.Guild.Name}} > {{.Forum.Name}} >
-    <b>{{.Post.Name}}</b>
-</span>
 {{$op := ""}}
 {{range .MessageGroups}}
 {{$this := (index . 0)}}
-{{if not $op}}
-    {{$op = $this.Author.Username}}
-{{end}}
 <span class='post'>
     <span class='flex'>
         <span class='header'>
@@ -21,7 +14,7 @@
             {{if $this.Author.Bot}}
                 <span class='badge'>BOT</span>
             {{end}}
-            {{if eq $op $this.Author.Username}}
+            {{if $this.FromOP}}
                 <span class='badge'>OP</span>
             {{end}}
             <br><br>
