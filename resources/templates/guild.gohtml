@@ -9,26 +9,16 @@
             <span class='threadnum'>Posts</span>
         </span>
     {{range $_, $forum := .ForumChannels}}
-        {{if or (not $forum.NSFW) $.ShowNSFW}}
+        {{if (not $forum.NSFW)}}
             <span class='flex row'>
                 <span class='title'>
-                    <a href="/{{$.Guild.ID}}/{{$forum.ID}}{{if $.ShowNSFW}}?nsfw=true{{end}}"><b>{{$forum.Name}}</b></a>
+                    <a href="/{{$.Guild.ID}}/{{$forum.ID}}"><b>{{$forum.Name}}</b></a>
                 </span>
                 <span class='threadnum'>
                     {{len $forum.Posts}}
                 </span>
             </span>
         {{end}}
-    {{end}}
-    {{if not $.ShowNSFW}}
-        <button onclick="
-            // by being a little bitch and putting ?nsfw in the url you also agree that you are allowed to see adult content
-
-            var allowed = confirm('By clicking OK you verify that you are over 18 and allowed to see adult content.'); 
-            if(allowed == true) {
-                window.open(window.location.href+'?nsfw=true', '_self');
-            }
-        ">Show NSFW Forums</button>
     {{end}}
     </span>
 {{ template "footer.gohtml" .}}

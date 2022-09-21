@@ -114,8 +114,7 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		Guild         *discord.Guild
 		ForumChannels []ForumChannel
-		ShowNSFW      bool
-	}{Guild: guild, ShowNSFW: (r.URL.Query().Get("nsfw") == "true")}
+	}{Guild: guild}
 	channels, err := s.discord.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -153,12 +152,18 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+
+	if forum.NSFW {
+		displayErr(w, http.StatusForbidden,
+			fmt.Errorf("nsfw content is not served"))
+		return
+	}
+
 	ctx := struct {
-		Guild    *discord.Guild
-		Forum    *discord.Channel
-		Posts    []discord.Channel
-		ShowNSFW bool
-	}{guild, forum, nil, (r.URL.Query().Get("nsfw") == "true")}
+		Guild *discord.Guild
+		Forum *discord.Channel
+		Posts []discord.Channel
+	}{guild, forum, nil}
 	guildThreads, err := s.discord.ActiveThreads(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -181,6 +186,12 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if forum.NSFW {
+		displayErr(w, http.StatusForbidden,
+			fmt.Errorf("nsfw content is not served"))
+		return
+	}
+
 	post, ok := s.postFromReq(w, r)
 	if !ok {
 		return
@@ -191,13 +202,6 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		Post          *discord.Channel
 		MessageGroups [][]Message
 	}{guild, forum, post, nil}
-
-	if forum.NSFW && !(r.URL.Query().Get("nsfw") == "true") {
-		s.executeTemplate(w, "header.gohtml", nil)
-		s.executeTemplate(w, "nsfw.gohtml", nil)
-		s.executeTemplate(w, "footer.gohtml", nil)
-		return
-	}
 
 	msgs, err := s.discord.Client.Messages(post.ID, 0)
 	if err != nil {

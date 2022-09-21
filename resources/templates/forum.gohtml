@@ -4,24 +4,20 @@
 </span>
 
 <title>{{.Forum.Name}}</title>
-{{if and .Forum.NSFW (not .ShowNSFW)}}
-    {{template "nsfw.gohtml"}}
-{{else}}
-    <span class='topics'>
-        <span class='flex row'>
-            <span class='title'>Posts</span>
-            <span class='threadnum'>Messages</span>
-        </span>
-        {{range .Posts}}
-            <span class='flex row'>
-                <span class='title'>
-                    <a href="/{{$.Guild.ID}}/{{$.Forum.ID}}/{{.ID}}{{if $.ShowNSFW}}?nsfw=true{{end}}"><b>{{.Name}}</b></a>
-                </span>
-                <span class='threadnum'>
-                    {{.MessageCount}}
-                </span>
-            </span>
-        {{end}}
+<span class='topics'>
+    <span class='flex row'>
+        <span class='title'>Posts</span>
+        <span class='threadnum'>Messages</span>
     </span>
-{{end}}
+    {{range .Posts}}
+        <span class='flex row'>
+            <span class='title'>
+                <a href="/{{$.Guild.ID}}/{{$.Forum.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
+            </span>
+            <span class='threadnum'>
+                {{.MessageCount}}
+            </span>
+        </span>
+    {{end}}
+</span>
 {{ template "footer.gohtml" .}}
