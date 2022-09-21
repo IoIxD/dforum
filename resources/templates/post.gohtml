@@ -1,5 +1,10 @@
 {{ template "header.gohtml" .}}
-{{$op := ""}}
+{{$op := 0}}
+{{if gt (len .MessageGroups) 0}}
+  {{$op = (index (index .MessageGroups 0) 0).Author.ID}}
+{{else}}
+    <em>wind blowing noises</em><br>some dipshit deleted the top post in their thread and not the thread itself...how sad... 
+{{end}}
 {{range .MessageGroups}}
 {{$firstMSG := (index . 0)}}
 <span class='post'>
@@ -14,7 +19,7 @@
             {{if $firstMSG.Author.Bot}}
                 <span class='badge'>BOT</span>
             {{end}}
-            {{if $firstMSG.FromOP}}
+            {{if eq $op $firstMSG.Author.ID}}
                 <span class='badge'>OP</span>
             {{end}}
             <br><br>
