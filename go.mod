@@ -3,18 +3,22 @@ module github.com/IoIxD/DFS
 go 1.19
 
 require (
-	github.com/disgoorg/disgo v0.13.21-0.20220916011522-16246893ae55
-	github.com/disgoorg/log v1.2.0
-	github.com/disgoorg/snowflake/v2 v2.0.0
-	github.com/pelletier/go-toml/v2 v2.0.5
+	github.com/diamondburned/ningen/v3 v3.0.0-20220619214735-56004aa62571
+	github.com/naoina/toml v0.1.1
 )
 
 require (
-	github.com/sasha-s/go-csync v0.0.0-20210812194225-61421b77c44b // indirect
-	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8 // indirect
+	github.com/gorilla/schema v1.2.0 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/naoina/go-stringutil v0.1.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 )
 
 require (
-	github.com/gomarkdown/markdown v0.0.0-20220905174103-7b278df48cfb
+	github.com/diamondburned/arikawa/v3 v3.1.1-0.20220919215554-d96ce0f54cf1
+	github.com/go-chi/chi/v5 v5.0.7
 	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/yuin/goldmark v1.4.14
 )

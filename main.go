@@ -3,177 +3,96 @@ package main
 import (
 	"context"
 	"embed"
+	"flag"
 	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
+	"os/signal"
 	"time"
+
+	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/naoina/toml"
 )
 
-//go:embed pages/*.*
-var pages embed.FS
+//go:embed resources
+var embedfs embed.FS
 var tmpl *template.Template
-var NumbersOnlyRe *regexp.Regexp
-var SitemapRe *regexp.Regexp
-
-var Client *Bot
 
 func main() {
-	// initialize the discord shit
-	Client = InitBot()
-	defer Client.Client.Close(context.TODO())
-
-	// initialize the template shit
-	tmpl = template.New("")
-	tmpl.Funcs(FuncMap(Client))
-	_, err := tmpl.ParseFS(pages, "pages/*")
+	cfgpath := flag.String("config", "config.toml", "path to config.toml")
+	flag.Parse()
+	file, err := os.ReadFile(*cfgpath)
 	if err != nil {
-		log.Println(err)
+		log.Fatalln("Error while reading config:", file)
+	}
+	config := struct {
+		BotToken   string
+		ListenAddr string
+		Resources  string
+	}{ListenAddr: ":8084"}
+	if err := toml.Unmarshal(file, &config); err != nil {
+		log.Fatalln("Error while parsing config:", err)
 	}
 
-	// initialize the regex expressions.
-	NumbersOnlyRe = regexp.MustCompile(`([^0-9\.\/])`)
-	SitemapRe = regexp.MustCompile(`sitemap(-([0-9]*)){0,3}.xml`)
+	var fsys fs.FS
+	if config.Resources != "" {
+		fsys = os.DirFS(config.Resources)
+	} else {
+		if fsys, err = fs.Sub(embedfs, "resources"); err != nil {
+			log.Fatalln("Error while using embedded resources:")
+		}
+	}
 
-	// initialize the main server
-	s := &http.Server{
-		Addr:           ":8084",
-		Handler:        http.HandlerFunc(handlerFunc),
+	tmpl = template.New("")
+	tmpl.Funcs(funcMap)
+	_, err = tmpl.ParseFS(fsys, "templates/*")
+	if err != nil {
+		log.Fatalln("Error parsing templates:", err)
+	}
+
+	ctx, done := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer done()
+
+	// TODO: custom store
+	state := state.New("Bot " + config.BotToken)
+	state.AddIntents(0 |
+		gateway.IntentGuildMessages |
+		gateway.IntentGuilds,
+	)
+	if err = state.Open(ctx); err != nil {
+		log.Fatalln("Error while opening gateway connection to Discord:", err)
+	}
+	self, err := state.Me()
+	if err != nil {
+		log.Fatalln("Error fetching self:", err)
+	}
+	log.Printf("Connected to Discord as %s#%s (%s)\n", self.Username, self.Discriminator, self.ID)
+
+	server := newServer(state, fsys)
+	httpserver := &http.Server{
+		Addr:           config.ListenAddr,
+		Handler:        server,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	if err = s.ListenAndServe(); err != nil {
-		log.Fatalln(err)
-	}
-}
-
-func handlerFunc(w http.ResponseWriter, r *http.Request) {
-	// How are we trying to access the site?
-	switch r.Method {
-	case http.MethodGet, http.MethodHead: // These methods are allowed. continue.
-	default: // Send them an error for other ones.
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Get the pagename.
-	pagename, values := getPagename(r.URL.EscapedPath())
-
-	var internal bool
-	var filename string
-
-	var file *os.File
-	var err error
-
-	// pagename rewrites
-	switch {
-	// If the pagename is all numbers then it's a list page.
-	case !NumbersOnlyRe.Match([]byte(pagename)):
-		pagename = "list"
-	// If it's any of the sitemap xml files we want to move to a new function.
-	case SitemapRe.Match([]byte(pagename)):
-		XMLServe(w, r, pagename)
-		return
-	}
-
-	// Check if it could refer to another internal page
-	if file, err = os.Open("pages/" + pagename + ".gohtml"); err == nil {
-		filename = "pages/" + pagename + ".gohtml"
-		internal = true
-		// Otherwise, check if it could refer to a regular file.
-	} else {
-		if file, err = os.Open("./" + pagename); err == nil {
-			filename = "./" + pagename
-		} else {
-			// If all else fails, send a 404.
-			http.Error(w, err.Error(), 404)
-			return
-		}
-	}
-
-	// get the mime-type.
-	contentType, err := GetContentType(file)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Content-Name", filename)
-	w.WriteHeader(200)
-
-	var Info struct {
-		Values []string
-		Query  url.Values
-	}
-	Info.Values = values
-	Info.Query = r.URL.Query()
-
-	// Serve the file differently based on whether it's an internal page or not.
-	if internal {
-		if err := tmpl.ExecuteTemplate(w, pagename+".gohtml", Info); err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-	} else {
-		page, err := os.ReadFile(filename)
+	httperr := make(chan error, 1)
+	go func() {
+		httperr <- httpserver.ListenAndServe()
+	}()
+	select {
+	case <-ctx.Done():
+		done()
+		err := httpserver.Shutdown(context.Background())
 		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
+			log.Fatalln("HTTP server shutdown:", err)
 		}
-		w.Write(page)
-	}
-}
-
-func getPagename(fullpagename string) (string, []string) {
-	// Split the pagename into sections
-	if fullpagename[0] == '/' && len(fullpagename) > 1 {
-		fullpagename = fullpagename[1:]
-	}
-	values_ := strings.Split(fullpagename, "/")
-	// Filter the values to ones that aren't blank
-	values := make([]string, 0)
-	for _, v := range values_ {
-		if v != "" {
-			values = append(values, v)
-		}
-	}
-	if len(values) == 0 {
-		values = append(values, "index")
-	}
-
-	// Then try and get the relevant pagename from that, accounting for many specifics.
-	pagename := values[0]
-	switch pagename {
-	// If it's blank, set it to the default page.
-	case "":
-		return "index", values
-	// If the first part is resources, then treat the rest of the url normally
-	case "resources":
-		return fullpagename, values
-	}
-	return pagename, values
-}
-
-func GetContentType(output *os.File) (string, error) {
-	ext := filepath.Ext(output.Name())
-	file := make([]byte, 1024)
-	switch ext {
-	case ".htm", ".html", ".gohtm", ".gohtml":
-		return "text/html", nil
-	case ".css":
-		return "text/css", nil
-	case ".js":
-		return "application/javascript", nil
-	default:
-		_, err := output.Read(file)
+	case err := <-httperr:
 		if err != nil {
-			return "", err
+			log.Fatalln("HTTP server encountered error:", err)
 		}
-		return http.DetectContentType(file), nil
 	}
 }
