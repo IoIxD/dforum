@@ -154,12 +154,6 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if forum.NSFW {
-		displayErr(w, http.StatusForbidden,
-			fmt.Errorf("nsfw content is not served"))
-		return
-	}
-
 	ctx := struct {
 		Guild *discord.Guild
 		Forum *discord.Channel
@@ -187,12 +181,6 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if forum.NSFW {
-		displayErr(w, http.StatusForbidden,
-			fmt.Errorf("nsfw content is not served"))
-		return
-	}
-
 	post, ok := s.postFromReq(w, r)
 	if !ok {
 		return
@@ -263,6 +251,11 @@ func (s *server) forumFromReq(w http.ResponseWriter, r *http.Request) (*discord.
 			displayErr(w, http.StatusInternalServerError,
 				fmt.Errorf("fetching forum: %w", err))
 		}
+		return nil, false
+	}
+	if forum.NSFW {
+		displayErr(w, http.StatusForbidden,
+			errors.New("NSFW content is not served"))
 		return nil, false
 	}
 	return forum, true
