@@ -21,6 +21,7 @@ func TrimForMeta(value string) string {
 	return value[:128] + "..."
 =======
 	"Capitalize":      Capitalize,
+	"TrimForMeta":     TrimForMeta,
 }
 
 func Capitalize(value string) string {
@@ -40,6 +41,14 @@ func Capitalize(value string) string {
 	}
 	return result.String()
 >>>>>>> c6d5931 (better page titles)
+}
+
+// Trim a string to 128 characters, for meta tags.
+func TrimForMeta(value string) string {
+	if len(value) <= 127 {
+		return value
+	}
+	return value[:128] + "..."
 }
 
 func PrettyTimeSince(timestamp time.Time) string {
