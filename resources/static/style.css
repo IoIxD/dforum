@@ -78,12 +78,30 @@ img[src*=SPOILER_]:hover {
 
 .post {
     display: block;
+    width: 100%;
+    overflow: hidden;
 }
+
 .flex {
+    display: block;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;   
     display: flex;
     position: relative;
+    white-space: pre-line;
+}
+.flex.row {
+    margin: 5px;
+    -moz-box-orient: inline-axis;
+    box-orient: inline-axis;
+    flex-direction: row;
+    width: 100%;
 }
 .flex.column {
+    -moz-box-orient: block-axis;
+    box-orient: block-axis;
     flex-direction: column;
 }
 
@@ -101,15 +119,29 @@ img[src*=SPOILER_]:hover {
     vertical-align: middle;
 }
 .userinfo {
+    -webkit-box-flex: 1;
+    -moz-box-flex:  1;
+    -webkit-flex:  1;
+    -ms-flex:  1;
     flex: 1;
     background: #ddd;
     border: 1px solid #eee;
     padding: 25px 0 25px 50px;
     margin-right:10px;
 }
+.userinfo img {
+    display: inline-block;
+    max-width: 128px;
+    max-height: 128px;
+}
 .postinfo {
-    flex: 4;
+    -webkit-box-flex: 8;
+    -moz-box-flex:  8;
+    -webkit-flex:  8;
+    -ms-flex:  8;
+    flex:  8;
     padding-bottom: 2em;
+    white-space: pre-wrap;
     word-break: break-word;
 }
 .postinfo img {
@@ -117,9 +149,13 @@ img[src*=SPOILER_]:hover {
     margin-bottom:5%;
 }
 .postinfo p {
-    white-space: pre-line;
+    white-space: pre-wrap;
+    max-width: 50%;
 }
 
+.reactions {
+    display: none;
+}
 .reactions .reaction {
     display: inline-block;
     height: 1em;
@@ -132,6 +168,8 @@ img[src*=SPOILER_]:hover {
 }
 
 .badge {
+    display: inline-block;
+    width: 1.5em;
     background: #bbb;
     padding: 4px;
     margin: 4px;

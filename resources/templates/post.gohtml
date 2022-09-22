@@ -33,14 +33,12 @@
 
 {{range .MessageGroups}}
 {{$firstMSG := (index . 0)}}
-<span class='post'>
-    <span class='flex'>
-        <span class='header'>
-            {{PrettyTimeSince $firstMSG.ID.Time}} <span class='timestamp'>({{$firstMSG.ID.Time}})</span>
-        </span>
+<span class='flex column post'>
+    <span class='flex row header'>
+        {{PrettyTimeSince $firstMSG.ID.Time}} <span class='timestamp'>({{$firstMSG.ID.Time}})</span>
     </span>
-    <span class='flex'>
-        <span class='userinfo'>
+    <span class='flex row'>
+        <span class='flex column userinfo'>
             {{$firstMSG.Author.Username}}
             {{if $firstMSG.Author.Bot}}
                 <span class='badge'>BOT</span>
@@ -68,7 +66,7 @@
             </span>
             {{end}}
             {{end}}
-            <span class='reactions'>
+            <span class='flex column reactions'>
                 {{range $firstMSG.Reactions}}                            
                     <span class='reaction'>
                         {{if .Emoji.IsCustom}}
