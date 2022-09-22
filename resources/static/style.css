@@ -121,16 +121,17 @@ img[src*=SPOILER_]:hover {
     vertical-align: middle;
 }
 .userinfo {
-
+    flex: 1;
     background: #ddd;
     border: 1px solid #eee;
-    padding: 25px 0 25px 50px;
+    padding: 25px;
     margin-right:10px;
 }
 .userinfo img {
     display: inline-block;
     max-width: 128px;
     max-height: 128px;
+    margin-right: 50px;
 }
 .postinfo {
     -webkit-box-flex: 7;
@@ -169,6 +170,8 @@ img[src*=SPOILER_]:hover {
 .badge {
     display: inline-block;
     width: 1.5em;
+    height: 1.5em.;
+    text-align: center;
     background: #bbb;
     padding: 4px;
     margin: 4px;
