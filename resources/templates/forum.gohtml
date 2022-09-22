@@ -1,6 +1,7 @@
 {{ template "header.gohtml" .}}
 <span class='nav'>
-    {{.Guild.Name}} > <b>{{Capitalize .Forum.Name}}</b>
+    <a href="/{{.Guild.ID}}">{{.Guild.Name}}</a> > 
+    <b>{{Capitalize .Forum.Name}}</b>
 </span>
 <title>"{{Capitalize .Forum.Name}}" forum on {{.Guild.Name}}</title>
 <span class='topics'>
