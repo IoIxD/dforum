@@ -1,6 +1,6 @@
 {{ template "header.gohtml" .}}
 
-{{$title := print (Capitalize .Forum.Name) " forum on " .Guild.Name}}
+{{$title := print .Forum.Name " forum on " .Guild.Name}}
 <title>{{$title}}</title>
 <meta property="og:title" content="{{$title}}">
 <meta property="og:type" content="website">
@@ -8,7 +8,7 @@
 
 <span class='nav'>
     <a href="/{{.Guild.ID}}">{{.Guild.Name}}</a> > 
-    <b>{{Capitalize .Forum.Name}}</b>
+    <b>.Forum.Name</b>
 </span>
 
 <span class='topics'>
