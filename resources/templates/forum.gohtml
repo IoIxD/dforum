@@ -1,9 +1,16 @@
 {{ template "header.gohtml" .}}
+
+{{$title := print .Forum.Name " forum on " .Guild.Name}}
+<title>{{$title}}</title>
+<meta property="og:title" content="{{$title}}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="http://dfs.ioi-xd.net/{{.Guild.ID}}/{{.Forum.ID}}">
+
 <span class='nav'>
-    {{.Guild.Name}} > <b>{{.Forum.Name}}</b>
+    <a href="/{{.Guild.ID}}">{{.Guild.Name}}</a> > 
+    <b>{{.Forum.Name}}</b>
 </span>
 
-<title>{{.Forum.Name}}</title>
 <span class='topics'>
     <span class='flex row'>
         <span class='title'>Posts</span>

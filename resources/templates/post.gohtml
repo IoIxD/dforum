@@ -1,16 +1,42 @@
 {{ template "header.gohtml" .}}
 {{$op := 0}}
+{{$desc := "???"}}
+{{$image := ""}}
+
 {{if gt (len .MessageGroups) 0}}
-  {{$op = (index (index .MessageGroups 0) 0).Author.ID}}
+  {{$firstPost := (index (index .MessageGroups 0) 0)}}
+  {{$op = $firstPost.Author.ID}}
+  {{$desc = (TrimForMeta $firstPost.Content)}}
+  {{if $firstPost.MediaPreviews}}
+        {{$image = (index $firstPost.MediaPreviews 0).Thumbnail}}
+    {{else}}
+        {{$image = $firstPost.Author.AvatarURL}}
+    {{end}}
 {{else}}
     <em>wind blowing noises</em><br>some dipshit deleted the top post in their thread and not the thread itself...how sad... 
 {{end}}
+
+{{$title := print .Post.Name " - " .Guild.Name}}
+
+<title>{{$title}}</title>
+<meta property="og:title" content="{{$title}}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="http://dfs.ioi-xd.net/{{.Guild.ID}}/{{.Forum.ID}}/{{.Post.ID}}">
+<meta property="og:description" content="{{$desc}}">
+<meta property="og:image" content="{{$image}}">
+
+<span class='nav'>
+    <a href="/{{.Guild.ID}}">{{.Guild.Name}}</a> > 
+    <a href="/{{.Guild.ID}}/{{.Forum.ID}}">{{.Forum.Name}}</a> >
+    <b>{{.Post.Name}}</b>
+</span>
+
 {{range .MessageGroups}}
 {{$firstMSG := (index . 0)}}
 <span class='post'>
     <span class='flex'>
         <span class='header'>
-            {{PrettyTimeSince $firstMSG.ID.Time}} ({{$firstMSG.ID.Time}})
+            {{PrettyTimeSince $firstMSG.ID.Time}} <span class='timestamp'>({{$firstMSG.ID.Time}})</span>
         </span>
     </span>
     <span class='flex'>

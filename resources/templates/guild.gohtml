@@ -1,22 +1,28 @@
 {{ template "header.gohtml" .}}
+
+<title>{{.Guild.Name}} - DFS</title>
+<meta property="og:title" content="{{.Guild.Name}} - DFS">
+<meta property="og:type" content="website">
+<meta property="og:url" content="http://dfs.ioi-xd.net/{{.Guild.ID}}">
+
 <span class='nav'>
     <b>{{.Guild.Name}}</b>
 </span>
-    <title>{{.Guild.Name}}</title>
-    <span class='topics'>
-        <span class='flex row'>
-            <span class='title'>Forum</span>
-            <span class='threadnum'>Posts</span>
-        </span>
-    {{range $_, $forum := .ForumChannels}}
-        <span class='flex row'>
-            <span class='title'>
-                <a href="/{{$.Guild.ID}}/{{$forum.ID}}"><b>{{$forum.Name}}</b></a>
-            </span>
-            <span class='threadnum'>
-                {{len $forum.Posts}}
-            </span>
-        </span>
-    {{end}}
+
+<span class='topics'>
+    <span class='flex row'>
+        <span class='title'>Forum</span>
+        <span class='threadnum'>Posts</span>
     </span>
+{{range $_, $forum := .ForumChannels}}
+    <span class='flex row'>
+        <span class='title'>
+            <a href="/{{$.Guild.ID}}/{{$forum.ID}}"><b>{{$forum.Name}}</b></a>
+        </span>
+        <span class='threadnum'>
+            {{len $forum.Posts}}
+        </span>
+    </span>
+{{end}}
+</span>
 {{ template "footer.gohtml" .}}
