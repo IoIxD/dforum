@@ -94,6 +94,12 @@ img[src*=SPOILER_]:hover {
     background: #ccc;
     border: 1px solid #ddd;
 }
+.header .timestamp {
+    font-size: 60%;
+}
+.header * {
+    vertical-align: middle;
+}
 .userinfo {
     flex: 1;
     background: #ddd;
