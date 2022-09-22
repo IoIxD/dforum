@@ -17,7 +17,7 @@
     <em>wind blowing noises</em><br>some dipshit deleted the top post in their thread and not the thread itself...how sad... 
 {{end}}
 
-{{$title := print .Post.Name " - \"" (Capitalize .Forum.Name) "\" forum on " (Capitalize .Guild.Name)}}
+{{$title := print .Post.Name " - " .Guild.Name}}
 
 <title>{{$title}}</title>
 <meta property="og:title" content="{{$title}}">
@@ -28,7 +28,7 @@
 
 <span class='nav'>
     <a href="/{{.Guild.ID}}">{{.Guild.Name}}</a> > 
-    <a href="/{{.Guild.ID}}/{{.Forum.ID}}">{{Capitalize .Forum.Name}}</a> >
+    <a href="/{{.Guild.ID}}/{{.Forum.ID}}">{{.Forum.Name}}</a> >
     <b>{{.Post.Name}}</b>
 </span>
 

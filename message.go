@@ -22,7 +22,6 @@ type Message struct {
 	RenderedContent  template.HTML
 	MediaPreviews    []MediaPreview
 	PlainAttachments []PlainAttachment
-	FromOP           bool
 }
 
 type MediaPreview struct {
