@@ -94,6 +94,12 @@ img[src*=SPOILER_]:hover {
     background: #ccc;
     border: 1px solid #ddd;
 }
+.header .timestamp {
+    font-size: 60%;
+}
+.header * {
+    vertical-align: middle;
+}
 .userinfo {
     flex: 1;
     background: #ddd;
@@ -145,6 +151,12 @@ img[src*=SPOILER_]:hover {
     padding: 15px;
     margin: 10px 0 50px 0;
     background: #ddd;
+}
+
+.nav a {
+    color: #222;
+    text-decoration: none;
+    border-bottom: 2px dotted #222;
 }
 
 /* mobile */
