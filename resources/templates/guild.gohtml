@@ -10,9 +10,9 @@
 </span>
 
 <span class='topics'>
-    <span class='flex row'>
-        <span class='title'>Forum</span>
-        <span class='threadnum'>Posts</span>
+    <span class='flex row ' style='-moz-box-ordinal-group: -1'>
+        <span class='flex column title'>Forum</span>
+        <span class='flex column threadnum'>Posts</span>
     </span>
 {{range $i, $forum := .ForumChannels}}
     <span class='flex row' style='-moz-box-ordinal-group: {{$i}}'>

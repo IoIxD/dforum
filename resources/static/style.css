@@ -67,6 +67,7 @@ img[src*=SPOILER_]:hover {
 .title {
     background: #ddd;
     flex: 3;
+    -moz-box-flex: 3;
     margin: 2px;
 }
 
@@ -74,6 +75,7 @@ img[src*=SPOILER_]:hover {
     background: #ccc;
     margin: 2px;
     flex: 1;
+    -moz-box-flex: 1;
 }
 
 .post {
@@ -91,13 +93,13 @@ img[src*=SPOILER_]:hover {
     display: flex;
     position: relative;
     white-space: pre-line;
+    width: 100%;
 }
 .flex.row {
     margin: 5px;
     -moz-box-orient: inline-axis;
     box-orient: inline-axis;
     flex-direction: row;
-    width: 100%;
 }
 .flex.column {
     -moz-box-orient: block-axis;
