@@ -1,46 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"strings"
 	"time"
 )
 
 var funcMap = map[string]any{
 	"PrettyTimeSince": PrettyTimeSince,
-<<<<<<< HEAD
 	"TrimForMeta":     TrimForMeta,
-}
-
-// Trim a string to 128 characters, for meta tags.
-func TrimForMeta(value string) string {
-	if len(value) <= 127 {
-		return value
-	}
-	return value[:128] + "..."
-=======
-	"Capitalize":      Capitalize,
-	"TrimForMeta":     TrimForMeta,
-}
-
-func Capitalize(value string) string {
-	// Treat dashes as spaces
-	value = strings.Replace(value, "-", " ", 99)
-	valuesplit := strings.Split(value, " ")
-	result := bytes.NewBuffer(nil)
-	for i, v := range valuesplit {
-		if len(v) <= 0 {
-			continue
-		}
-		result.Write([]byte(strings.ToUpper(v[:1])))
-		result.Write([]byte(v[1:]))
-		if len(valuesplit)-1 > i {
-			result.Write([]byte(" "))
-		}
-	}
-	return result.String()
->>>>>>> c6d5931 (better page titles)
 }
 
 // Trim a string to 128 characters, for meta tags.
