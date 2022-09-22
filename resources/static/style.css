@@ -121,11 +121,7 @@ img[src*=SPOILER_]:hover {
     vertical-align: middle;
 }
 .userinfo {
-    -webkit-box-flex: 1;
-    -moz-box-flex:  1;
-    -webkit-flex:  1;
-    -ms-flex:  1;
-    flex: 1;
+
     background: #ddd;
     border: 1px solid #eee;
     padding: 25px 0 25px 50px;
@@ -137,14 +133,15 @@ img[src*=SPOILER_]:hover {
     max-height: 128px;
 }
 .postinfo {
-    -webkit-box-flex: 8;
-    -moz-box-flex:  8;
-    -webkit-flex:  8;
-    -ms-flex:  8;
+    -webkit-box-flex: 7;
+    -moz-box-flex:  7;
+    -webkit-flex:  7;
+    -ms-flex:  7;
     flex:  8;
     padding-bottom: 2em;
     white-space: pre-wrap;
     word-break: break-word;
+    height: 200%;
 }
 .postinfo img {
     max-width: 50%;
@@ -152,8 +149,8 @@ img[src*=SPOILER_]:hover {
 }
 .postinfo p {
     white-space: pre-wrap;
-    max-width: 50%;
 }
+
 
 .reactions {
     display: none;

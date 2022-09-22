@@ -50,13 +50,17 @@
             <img height="128" src="{{(index . 0).Author.AvatarURL}}">
         </span>
         <span class='flex column postinfo'>
-            {{range .}}
-            {{with .RenderedContent -}}
-                    {{- . -}}
-            {{- end}}
-            {{range .MediaPreviews}}
-                <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
-            {{end}}
+            <span class="contents">
+                {{range .}}
+                {{with .RenderedContent -}}
+                        {{- . -}}
+                {{- end}}
+            </span>
+            <span class="images">
+                {{range .MediaPreviews}}
+                    <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
+                {{end}}
+            </span>
             {{with .PlainAttachments}}
             <span class="attachments">
                 Attachments:
@@ -66,7 +70,7 @@
             </span>
             {{end}}
             {{end}}
-            <span class='flex column reactions'>
+            <span class='flex row reactions'>
                 {{range $firstMSG.Reactions}}                            
                     <span class='reaction'>
                         {{if .Emoji.IsCustom}}

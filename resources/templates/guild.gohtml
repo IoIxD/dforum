@@ -16,10 +16,10 @@
     </span>
 {{range $i, $forum := .ForumChannels}}
     <span class='flex row' style='-moz-box-ordinal-group: {{$i}}'>
-        <span class='title'>
+        <span class='flex column title'>
             <a href="/{{$.Guild.ID}}/{{$forum.ID}}"><b>{{$forum.Name}}</b></a>
         </span>
-        <span class='threadnum'>
+        <span class='flex column threadnum'>
             {{len $forum.Posts}}
         </span>
     </span>
