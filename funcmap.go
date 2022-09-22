@@ -10,6 +10,7 @@ import (
 var funcMap = map[string]any{
 	"PrettyTimeSince": PrettyTimeSince,
 	"Capitalize":      Capitalize,
+	"TrimForMeta":     TrimForMeta,
 }
 
 func Capitalize(value string) string {
@@ -28,6 +29,14 @@ func Capitalize(value string) string {
 		}
 	}
 	return result.String()
+}
+
+// Trim a string to 128 characters, for meta tags.
+func TrimForMeta(value string) string {
+	if len(value) <= 127 {
+		return value
+	}
+	return value[:128] + "..."
 }
 
 func PrettyTimeSince(timestamp time.Time) string {
