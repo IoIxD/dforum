@@ -1,9 +1,8 @@
 {{ template "header.gohtml" .}}
 <span class='nav'>
-    {{.Guild.Name}} > <b>{{.Forum.Name}}</b>
+    {{.Guild.Name}} > <b>{{Capitalize .Forum.Name}}</b>
 </span>
-
-<title>{{.Forum.Name}}</title>
+<title>"{{Capitalize .Forum.Name}}" forum on {{.Guild.Name}}</title>
 <span class='topics'>
     <span class='flex row'>
         <span class='title'>Posts</span>

@@ -1,4 +1,9 @@
 {{ template "header.gohtml" .}}
+<span class='nav'>
+    {{.Guild.Name}} > {{Capitalize .Forum.Name}} >
+    <b>{{.Post.Name}}</b>
+</span>
+<title>"{{.Post.Name}}" - {{.Forum.Name}} forum on {{Capitalize .Guild.Name}}</title>
 {{$op := 0}}
 {{if gt (len .MessageGroups) 0}}
   {{$op = (index (index .MessageGroups 0) 0).Author.ID}}

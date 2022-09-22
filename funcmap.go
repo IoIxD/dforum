@@ -1,12 +1,33 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 	"time"
 )
 
 var funcMap = map[string]any{
 	"PrettyTimeSince": PrettyTimeSince,
+	"Capitalize":      Capitalize,
+}
+
+func Capitalize(value string) string {
+	// Treat dashes as spaces
+	value = strings.Replace(value, "-", " ", 99)
+	valuesplit := strings.Split(value, " ")
+	result := bytes.NewBuffer(nil)
+	for i, v := range valuesplit {
+		if len(v) <= 0 {
+			continue
+		}
+		result.Write([]byte(strings.ToUpper(v[:1])))
+		result.Write([]byte(v[1:]))
+		if len(valuesplit)-1 > i {
+			result.Write([]byte(" "))
+		}
+	}
+	return result.String()
 }
 
 func PrettyTimeSince(timestamp time.Time) string {
