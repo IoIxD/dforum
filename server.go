@@ -104,7 +104,9 @@ func (s *server) getIndex(w http.ResponseWriter, r *http.Request) {
 
 type ForumChannel struct {
 	discord.Channel
-	Posts []discord.Channel
+	Posts             []discord.Channel
+	TotalMessageCount int
+	LastActive        time.Time
 }
 
 func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
@@ -136,8 +138,18 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 					posts = append(posts, t)
 				}
 			}
+			var msgcount int
+			for _, post := range posts {
+				msgcount += post.MessageCount
+			}
+			lastactive := ch.LastMessageID.Time()
+			for _, post := range posts {
+				if post.LastMessageID.Time().After(lastactive) {
+					lastactive = post.LastMessageID.Time()
+				}
+			}
 			ctx.ForumChannels = append(ctx.ForumChannels, ForumChannel{
-				ch, posts,
+				ch, posts, msgcount, lastactive,
 			})
 		}
 	}
@@ -163,6 +175,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching guild threads: %w", err))
+		return
 	}
 	for _, t := range guildThreads.Threads {
 		if t.ParentID == forum.ID {
