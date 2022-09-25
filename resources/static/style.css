@@ -223,35 +223,37 @@ nav a {
 
 /* mobile */
 
-.tabular-list {
-    display: grid;
-}
+@supports (display: grid) {
 
-.forum-list {
-    grid-template-columns: 3fr 2fr 1fr 1fr;
-}
+    .tabular-list {
+        display: block;
+        display: grid;
+    }
 
-.post-list {
-    grid-template-columns: 2fr 1fr 1fr;
-}
+    .forum-list {
+        grid-template-columns: 3fr 2fr 1fr 1fr;
+    }
 
-.tabular-list > div {
-    margin: 5px;
-    padding: 5px;
-}
-/* set background color of every third div */
-.tabular-list > div {
-    background: #ddd;
-}
-.tabular-list .label {
-    display: none;
-}
+    .post-list {
+        grid-template-columns: 2fr 1fr 1fr;
+    }
 
-.forum-list > div:nth-child(2n) {
-    background: #ccc;
-}
-.post-list > div:nth-child(3n+2), .post-list > div:nth-child(3n-1) {
-    background: #ccc;
+    .tabular-list > div {
+        margin: 5px;
+        padding: 5px;
+    }
+
+    /* set background color of every third div */
+    .tabular-list > div {
+        background: #ddd;
+    }
+    .tabular-list .label {
+        display: none;
+    }
+
+    .active {
+        background: #ccc!important;
+    }
 }
 
 @media (max-width: 600px) {

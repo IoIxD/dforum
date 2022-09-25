@@ -14,18 +14,18 @@
 </nav>
 
 <div class='tabular-list post-list'>
-    <div>Title</div>
-    <div>Last Active</div>
-    <div>Messages</div>
+    <div class='title'>Title</div>
+    <div class='active'>Last Active</div>
+    <div class='messages'>Messages</div>
     {{range .Posts}}
-        <div>
+        <div class='title'>
             <a href="/{{$.Guild.ID}}/{{$.Forum.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
         </div>
-        <div>
+        <div class='active'>
             <span class='label'>Last active at </span>
             <time>{{.LastMessageID.Time.Format "Jan 2 2006 3:04 PM"}}</time>
         </div>
-        <div>
+        <div class='messages'>
             {{.MessageCount}}
             <span class='label'> messages</span>
         </div>
