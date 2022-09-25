@@ -65,6 +65,7 @@ img[src*=SPOILER_]:hover {
 .title {
     background: #ddd;
     flex: 3;
+    -moz-box-flex: 3;
     margin: 2px;
 }
 
@@ -72,13 +73,35 @@ img[src*=SPOILER_]:hover {
     background: #ccc;
     margin: 2px;
     flex: 1;
+    -moz-box-flex: 1;
+}
+
+.post {
+    display: block;
+    width: 100%;
+    overflow: hidden;
 }
 
 .flex {
+    display: block;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;   
     display: flex;
     position: relative;
+    white-space: pre-line;
+    width: 100%;
+}
+.flex.row {
+    margin: 5px;
+    -moz-box-orient: inline-axis;
+    box-orient: inline-axis;
+    flex-direction: row;
 }
 .flex.column {
+    -moz-box-orient: block-axis;
+    box-orient: block-axis;
     flex-direction: column;
 }
 
@@ -98,22 +121,38 @@ img[src*=SPOILER_]:hover {
     flex: 1;
     background: #ddd;
     border: 1px solid #eee;
-    padding: 25px 0 25px 50px;
+    padding: 25px;
     margin-right:10px;
 }
+.userinfo img {
+    display: inline-block;
+    max-width: 128px;
+    max-height: 128px;
+    margin-right: 50px;
+}
 .postinfo {
-    flex: 4;
+    -webkit-box-flex: 7;
+    -moz-box-flex:  7;
+    -webkit-flex:  7;
+    -ms-flex:  7;
+    flex:  8;
     padding-bottom: 2em;
+    white-space: pre-wrap;
     word-break: break-word;
+    height: 200%;
 }
 .postinfo img {
     max-width: 50%;
     margin-bottom:5%;
 }
 .postinfo p {
-    white-space: pre-line;
+    white-space: pre-wrap;
 }
 
+
+.reactions {
+    display: none;
+}
 .reactions .reaction {
     display: inline-block;
     height: 1em;
@@ -124,7 +163,6 @@ img[src*=SPOILER_]:hover {
 .reactions .reaction .emoji {
     height: 100%;
 }
-
 
 h1 a {
     color: black;
@@ -205,6 +243,7 @@ nav a {
     font-size: 0.8rem;
     color: #444;
     width: 100%;
+    display: block;
 }
 .post .content {
     flex-wrap: wrap;
