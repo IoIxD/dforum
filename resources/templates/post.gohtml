@@ -25,51 +25,51 @@
 <meta property="og:description" content="{{$desc}}">
 <meta property="og:image" content="{{$image}}">
 
-<span class='nav'>
-    <a href="/{{.Guild.ID}}">{{.Guild.Name}}</a> > 
-    <a href="/{{.Guild.ID}}/{{.Forum.ID}}">{{.Forum.Name}}</a> >
-    <b>{{.Post.Name}}</b>
-</span>
+<nav>
+<ul>
+    <li><a href="/{{.Guild.ID}}">{{.Guild.Name}}</a></li>
+    <li><a href="/{{.Guild.ID}}/{{.Forum.ID}}">{{.Forum.Name}}</a></li>
+    <li>{{.Post.Name}}</li>
+</ul>
+</nav>
 
+<h2>{{.Post.Name}}</h2>
+<div>
 {{range .MessageGroups}}
-{{$firstMSG := (index . 0)}}
-<span class='post'>
-    <span class='flex'>
-        <span class='header'>
-            {{PrettyTimeSince $firstMSG.ID.Time}} <span class='timestamp'>({{$firstMSG.ID.Time}})</span>
-        </span>
-    </span>
-    <span class='flex'>
-        <span class='userinfo'>
-            {{$firstMSG.Author.Username}}
-            {{if $firstMSG.Author.Bot}}
-                <span class='badge'>BOT</span>
-            {{end}}
-            {{if eq $op $firstMSG.Author.ID}}
-                <span class='badge'>OP</span>
-            {{end}}
-            <br><br>
-            <img height="128" src="{{(index . 0).Author.AvatarURL}}">
-        </span>
-        <span class='flex column postinfo'>
-            {{range .}}
-            {{with .RenderedContent -}}
-                    {{- . -}}
-            {{- end}}
-            {{range .MediaPreviews}}
-                <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
-            {{end}}
-            {{with .PlainAttachments}}
+{{$firstMsg := (index . 0)}}
+<div class='post'>
+    <div class='author'>
+        <img class='small-avatar' src="{{(index . 0).Author.AvatarURL}}">
+        <div>{{$firstMsg.Author.Username}}</div>
+        <img src="{{(index . 0).Author.AvatarURL}}">
+        <ul class="badges">
+        {{if $firstMsg.Author.Bot}}
+            <li>BOT</li>
+        {{end}}
+        {{if eq $op $firstMsg.Author.ID}}
+            <li>OP</li>
+        {{end}}
+        <span class='timestamp'>{{$firstMsg.ID.Time.Format "Jan 2 2006 3:04 PM"}}</time></span>
+        </ul>
+    </div>
+    <div class='content'>
+    <span class='timestamp'>Posted {{$firstMsg.ID.Time.Format "January 2, 2006 3:04 PM"}}</time></span>
+    {{range .}}
+        {{.RenderedContent}}
+        {{range .MediaPreviews}}
+            <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
+        {{end}}
+        {{with .PlainAttachments}}
             <span class="attachments">
                 Attachments:
             {{range .}}
                 <a href="{{.URL}}">{{.Name}}</a>
             {{end}}
             </span>
-            {{end}}
-            {{end}}
+        {{end}}
+        {{end}}
             <span class='reactions'>
-                {{range $firstMSG.Reactions}}                            
+                {{range $firstMsg.Reactions}}                            
                     <span class='reaction'>
                         {{if .Emoji.IsCustom}}
                             <img class='emoji' src='https://cdn.discordapp.com/emojis/{{.Emoji.ID}}.webp?size=40'>
@@ -80,8 +80,8 @@
                     </span>
                 {{end}}
             </span>
-        </span>
-    </span>
-</span>
+    </div>
+</div>
 {{end}}
+</div>
 {{ template "footer.gohtml" .}}

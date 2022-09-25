@@ -6,25 +6,29 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="http://dfs.ioi-xd.net/{{.Guild.ID}}/{{.Forum.ID}}">
 
-<span class='nav'>
-    <a href="/{{.Guild.ID}}">{{.Guild.Name}}</a> > 
-    <b>{{.Forum.Name}}</b>
-</span>
+<nav>
+<ul>
+    <li><a href="/{{.Guild.ID}}">{{.Guild.Name}}</a></li>
+    <li>{{.Forum.Name}}</li>
+</ul>
+</nav>
 
-<span class='topics'>
-    <span class='flex row'>
-        <span class='title'>Posts</span>
-        <span class='threadnum'>Messages</span>
-    </span>
+<div class='tabular-list post-list'>
+    <div>Title</div>
+    <div>Last Active</div>
+    <div>Messages</div>
     {{range .Posts}}
-        <span class='flex row'>
-            <span class='title'>
-                <a href="/{{$.Guild.ID}}/{{$.Forum.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
-            </span>
-            <span class='threadnum'>
-                {{.MessageCount}}
-            </span>
-        </span>
+        <div>
+            <a href="/{{$.Guild.ID}}/{{$.Forum.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
+        </div>
+        <div>
+            <span class='label'>Last active at </span>
+            <time>{{.LastMessageID.Time.Format "Jan 2 2006 3:04 PM"}}</time>
+        </div>
+        <div>
+            {{.MessageCount}}
+            <span class='label'> messages</span>
+        </div>
     {{end}}
-</span>
+</div>
 {{ template "footer.gohtml" .}}

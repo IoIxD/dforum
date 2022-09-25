@@ -1,7 +1,7 @@
 body {
     font-family: "Ubuntu", sans-serif;
-    min-width: 90vw;
-    display:block;
+    max-width: 920px;
+    display: block;
     margin: 0 auto;
     padding: 3rem;
     background: #eee;
@@ -29,9 +29,7 @@ pre {
 p + pre {
     margin-left: 0.5em;
 }
-p + br + p {
-    margin-top: -2em;
-}
+
 
 img[src*=SPOILER_]:not(:hover) {
     filter: blur(5px) brightness(10%);
@@ -76,9 +74,6 @@ img[src*=SPOILER_]:hover {
     flex: 1;
 }
 
-.post {
-    display: block;
-}
 .flex {
     display: flex;
     position: relative;
@@ -89,7 +84,6 @@ img[src*=SPOILER_]:hover {
 
 .header {
     display:block;
-    width:100%;
     padding: 5px;
     background: #ccc;
     border: 1px solid #ddd;
@@ -131,38 +125,190 @@ img[src*=SPOILER_]:hover {
     height: 100%;
 }
 
-.badge {
-    background: #bbb;
-    padding: 4px;
-    margin: 4px;
-}
-.top {
-    height: 5%;
-    display: block;
-    color: #222;
-    margin: 10px 0;
-}
-.top a {
+
+h1 a {
     color: black;
 }
 
-.nav {
+nav {
     display: block;
     padding: 15px;
-    margin: 10px 0 50px 0;
+    margin: 10px 0;
     background: #ddd;
 }
 
-.nav a {
+nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+nav li {
+    display: inline;
+}
+
+nav li:last-child {
+    font-weight: bold;
+}
+
+nav li+li:before {
+    font-weight: normal;
+    padding: 8px;
+    color: black;
+    content: ">";
+}
+
+nav a {
     color: #222;
     text-decoration: none;
     border-bottom: 2px dotted #222;
 }
 
+.post {
+    display: flex;
+    flex-direction: row;
+    padding-top: 10px;
+}
+.post .author {
+    display: flex;
+    flex-direction: column;
+    background: #ddd;
+    max-width: 30%;
+    min-width: 150px;
+    margin-right: 10px;
+    padding: 10px;
+    align-items: center;
+}
+.post .author img {
+    height: 128px;
+    width: auto;
+    margin: 5px auto;
+}
+.post .author .small-avatar {
+    display: none;
+}
+.post .author .timestamp {
+    display: none;
+}
+.post .badges {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+.post .badges li {
+    background: #bbb;
+    padding: 4px;
+    margin: 4px;
+}
+.post .timestamp {
+    padding: 4px;
+    font-size: 0.8rem;
+    color: #444;
+    width: 100%;
+}
+.post .content {
+    flex-wrap: wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    flex: 0 1 100%;
+}
+.post .content p {
+    white-space: pre-line;
+}
+.post .content img {
+    max-width: 40vw;
+    max-height: 40vh;
+    height: auto;
+}
+
 /* mobile */
 
+.tabular-list {
+    display: grid;
+}
+
+.forum-list {
+    grid-template-columns: 3fr 2fr 1fr 1fr;
+}
+
+.post-list {
+    grid-template-columns: 2fr 1fr 1fr;
+}
+
+.tabular-list > div {
+    margin: 5px;
+    padding: 5px;
+}
+/* set background color of every third div */
+.tabular-list > div {
+    background: #ddd;
+}
+.tabular-list .label {
+    display: none;
+}
+
+.forum-list > div:nth-child(2n) {
+    background: #ccc;
+}
+.post-list > div:nth-child(3n+2), .post-list > div:nth-child(3n-1) {
+    background: #ccc;
+}
+
 @media (max-width: 600px) {
+    nav li {
+        display: block;
+    }
+    .post {
+        flex-direction: column;
+    }
+    .post .author {
+        padding: 2px 5px;
+        max-height: 40px;
+        min-width: 100%;
+        flex-direction: row;
+        align-items: left;
+    }
+    .post .author * {
+        display: inline;
+        align-items: center;
+    }
+    .post .author .timestamp {
+        display: inline;
+    }
+    .post .author img {
+        height: 32px;
+        width: auto;
+        margin: auto 5px;
+        display: none;
+    }
+    .post .author .small-avatar {
+        display: inline;
+    }
+    .post .content .timestamp {
+        display: none;
+    }
     .postinfo img {
         max-width: 100%;
+    }
+    .tabular-list {
+        display: block;
+    }
+    .tabular-list > div {
+        background-color: inherit!important;
+    }
+    .tabular-list .label {
+        display: inline;
+    }
+    .forum-list > div:nth-child(-n+4) {
+        display: none;
+    }
+    .forum-list > div:nth-child(4n+1) {
+        font-size: 1.5rem;
+    }
+    .post-list > div:nth-child(-n+3) {
+        display: none;
+    }
+    .post-list > div:nth-child(3n+1) {
+        font-size: 1.5rem;
     }
 }

@@ -5,24 +5,32 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="http://dfs.ioi-xd.net/{{.Guild.ID}}">
 
-<span class='nav'>
-    <b>{{.Guild.Name}}</b>
-</span>
-
-<span class='topics'>
-    <span class='flex row'>
-        <span class='title'>Forum</span>
-        <span class='threadnum'>Posts</span>
-    </span>
-{{range $_, $forum := .ForumChannels}}
-    <span class='flex row'>
-        <span class='title'>
-            <a href="/{{$.Guild.ID}}/{{$forum.ID}}"><b>{{$forum.Name}}</b></a>
-        </span>
-        <span class='threadnum'>
-            {{len $forum.Posts}}
-        </span>
-    </span>
+<nav>
+<ul>
+    <li>{{.Guild.Name}}</li>
+</ul>
+</nav>
+<div class='tabular-list forum-list'>
+    <div>Forum</div>
+    <div>Last Active</div>
+    <div>Posts</div>
+    <div>Messages</div>
+{{range .ForumChannels}}
+        <div>
+            <a href="/{{$.Guild.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
+        </div>
+        <div>
+            <span class='label'>Last active at </span>
+            <time>{{.LastActive.Format "Jan 2 2006 3:04 PM"}}</time>
+        </div>
+        <div>
+            {{len .Posts}}
+            <span class='label'> posts</span>
+        </div>
+        <div>
+            {{.TotalMessageCount}}
+            <span class='label'> messages</span>
+        </div>
 {{end}}
-</span>
+</div>
 {{ template "footer.gohtml" .}}
