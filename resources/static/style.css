@@ -119,6 +119,7 @@ nav a {
 .post {
     padding-top: 10px;
     overflow: visible;
+    width: 100%;
 }
 .post .author {
     background: #ddd;
