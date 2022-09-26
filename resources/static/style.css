@@ -145,7 +145,8 @@ nav a {
     padding: 0;
 }
 .post .badges li {
-    width: 1.5em;
+    width: 2em;
+    text-align: center;
     background: #bbb;
     padding: 4px;
     margin: 4px auto;
