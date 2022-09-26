@@ -209,6 +209,31 @@ nav a {
     height: auto;
 }
 
+.cdnconsent {
+    width: 100%;
+    width: calc(100% - 2em);
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: black;
+    color: white;
+    padding: 2em;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.cdnconsent button {
+    background: white;
+    color: black;
+    border: none;
+    outline: none;
+    padding: 10px 8px;
+    -moz-border-radius: 6px;
+    -webkit-border-radius: 6px;
+    border-radius: 6px;
+}
+
 /* mobile */
 
 .highlight {
@@ -283,3 +308,4 @@ nav a {
         font-size: 1.5rem;
     }
 }
+
