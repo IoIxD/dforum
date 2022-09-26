@@ -191,7 +191,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	sort.SliceStable(ctx.Posts, func(a, b int) bool {
-		return ctx.Posts[a].Flags == discord.PinnedThread || ctx.Posts[a].LastMessageID.Time().Unix() > ctx.Posts[b].LastMessageID.Time().Unix()
+		return ctx.Posts[a].LastMessageID.Time().Unix() > ctx.Posts[b].LastMessageID.Time().Unix()
 	})
 	s.executeTemplate(w, "forum.gohtml", ctx)
 }
