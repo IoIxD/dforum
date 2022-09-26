@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"net/http"
 	"sort"
 	"sync"
@@ -142,7 +143,12 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 			for _, post := range posts {
 				msgcount += post.MessageCount
 			}
-			lastactive := ch.LastMessageID.Time()
+			var lastactive time.Time
+			if ch.LastMessageID == math.MaxUint64 {
+				lastactive = time.Unix(0, 0)
+			} else {
+				lastactive = ch.LastMessageID.Time()
+			}
 			for _, post := range posts {
 				if post.LastMessageID.Time().After(lastactive) {
 					lastactive = post.LastMessageID.Time()
@@ -153,6 +159,9 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
+	sort.SliceStable(ctx.ForumChannels, func(a, b int) bool {
+		return ctx.ForumChannels[a].LastActive.Unix() > ctx.ForumChannels[b].LastActive.Unix()
+	})
 	s.executeTemplate(w, "guild.gohtml", ctx)
 }
 
@@ -182,6 +191,9 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 			ctx.Posts = append(ctx.Posts, t)
 		}
 	}
+	sort.SliceStable(ctx.Posts, func(a, b int) bool {
+		return ctx.Posts[a].LastMessageID.Time().Unix() > ctx.Posts[b].LastMessageID.Time().Unix()
+	})
 	s.executeTemplate(w, "forum.gohtml", ctx)
 }
 

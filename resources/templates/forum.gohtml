@@ -22,7 +22,7 @@
             <a href="/{{$.Guild.ID}}/{{$.Forum.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
         </div>
         <div class='active'>
-            {{if ne .LastMessageID.Time.Unix 5818116911}}
+            {{if ne .LastMessageID.Time.Unix 0}}
                 <span class='label'>Last active at </span>
                 <time>{{.LastMessageID.Time.Format "Jan 2 2006 3:04 PM"}}</time>
             {{else}}
