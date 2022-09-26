@@ -20,7 +20,7 @@
             <a href="/{{$.Guild.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
         </div>
         <div>
-            {{if and (ne .LastActive.Unix 0) (ne .LastActive.Unix 5818116911)}}
+            {{if ne .LastActive.Unix 5818116911}}
                 <span class='label'>Last active at </span>
                 <time>{{.LastActive.Format "Jan 2 2006 3:04 PM"}}</time>
             {{else}}
