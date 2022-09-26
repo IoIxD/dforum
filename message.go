@@ -32,11 +32,12 @@ type Message struct {
 }
 
 type Author struct {
-	ID     discord.UserID
-	Name   string
-	Avatar string
-	Bot    bool
-	Role   string
+	ID        discord.UserID
+	Name      string
+	Avatar    string
+	Bot       bool
+	Role      string
+	RoleColor string
 }
 
 type MediaPreview struct {
@@ -108,6 +109,7 @@ func (s *server) author(m discord.Message) Author {
 		Bot:    m.Author.Bot,
 	}
 	var role string
+	var color string
 	mr, err := s.discord.Member(m.GuildID, m.Author.ID)
 	if err == nil {
 		for _, rid := range mr.RoleIDs {
@@ -117,6 +119,7 @@ func (s *server) author(m discord.Message) Author {
 			}
 			if rl.Hoist {
 				role = rl.Name
+				color = rl.Color.String()
 				break
 			}
 		}
@@ -124,6 +127,7 @@ func (s *server) author(m discord.Message) Author {
 		log.Println("Failed to get a member: ", err)
 	}
 	auth.Role = role
+	auth.RoleColor = color
 	return auth
 }
 

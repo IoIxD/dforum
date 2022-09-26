@@ -42,10 +42,10 @@
         <img class='small-avatar' src="{{.Author.Avatar}}">
         <div>{{.Author.Name}}</div>
         <img src="{{.Author.Avatar}}">
-        {{if .Author.Role}}
-            <div>{{.Author.Role}}</div>
-        {{end}}
         <ul class="badges">
+        {{if .Author.Role}}
+            <li {{if .Author.RoleColor}}style="box-shadow: inset 2px 2px {{.Author.RoleColor}}, inset -2px -2px {{.Author.RoleColor}};"{{end}}>{{.Author.Role}}</li>
+        {{end}}
         {{if .Author.Bot}}
             <li>BOT</li>
         {{end}}
