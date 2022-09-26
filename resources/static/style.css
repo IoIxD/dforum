@@ -213,7 +213,6 @@ nav a {
 @supports (display: grid) {
 
     .tabular-list {
-        display: block;
         display: grid;
     }
 
