@@ -37,7 +37,7 @@
 <div>
 {{range .MessageGroups}}
 {{$firstMsg := (index . 0)}}
-<div class='post flex row'>
+<div class='post flex roworcolumn'>
     <div class='author flex column'>
         <img class='small-avatar' src="{{(index . 0).Author.AvatarURL}}">
         <div>{{$firstMsg.Author.Username}}</div>

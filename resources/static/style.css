@@ -55,7 +55,7 @@ img[src*=SPOILER_]:hover {
     display: flex;
 }
 
-.flex.row {
+.flex.row, .flex.roworcolumn {
     -moz-box-orient: inline-axis;
     box-orient: inline-axis;
     flex-direction: row;
@@ -206,6 +206,11 @@ nav a {
 }
 
 @media (max-width: 600px) {
+    .flex.roworcolumn {
+        -moz-box-orient: block-axis;
+        box-orient: block-axis;
+        flex-direction: column;
+    }
     nav li {
         display: block;
     }
