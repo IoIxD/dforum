@@ -229,10 +229,6 @@ nav a {
 .tabular-list > div {
     margin: 5px;
     padding: 5px;
-}
-
-/* set background color of every third div */
-.tabular-list > div {
     background: #ddd;
 }
 .tabular-list .label {
@@ -257,7 +253,10 @@ nav a {
         display: inline;
         align-items: center;
     }
-    .post .author .timestamp {
+    .post .author .timestamp,
+    .post .author .small-avatar,
+    .tabular-list .label
+     {
         display: inline;
     }
     .post .author img {
@@ -266,10 +265,8 @@ nav a {
         margin: auto 5px;
         display: none;
     }
-    .post .author .small-avatar {
-        display: inline;
-    }
-    .post .content .timestamp {
+    .post .content .timestamp,
+    .forum-list .header, .post-list .header{
         display: none;
     }
     .postinfo img {
@@ -281,19 +278,7 @@ nav a {
     .tabular-list > div {
         background-color: inherit!important;
     }
-    .tabular-list .label {
-        display: inline;
-    }
-    .forum-list > div:nth-child(-n+4) {
-        display: none;
-    }
-    .forum-list > div:nth-child(4n+1) {
-        font-size: 1.5rem;
-    }
-    .post-list > div:nth-child(-n+3) {
-        display: none;
-    }
-    .post-list > div:nth-child(3n+1) {
+    .highlight {
         font-size: 1.5rem;
     }
 }

@@ -11,10 +11,10 @@
 </ul>
 </nav>
 <div class='tabular-list forum-list'>
-    <div>Forum</div>
-    <div>Last Active</div>
-    <div>Posts</div>
-    <div>Messages</div>
+    <div class='header'>Forum</div>
+    <div class='header'>Last Active</div>
+    <div class='header ighlight'>Posts</div>
+    <div class='header'>Messages</div>
 {{range .ForumChannels}}
         <div>
             <a href="/{{$.Guild.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
