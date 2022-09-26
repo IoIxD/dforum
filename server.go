@@ -58,6 +58,20 @@ func newServer(discord *state.State, fsys fs.FS) *server {
 	return s
 }
 
+func (s *server) CDNConsent(r *http.Request) bool {
+	// we want to return if the cookie is even present, we
+	// don't care about the value.
+	_, err := r.Cookie("cdnconsent")
+	if err != nil {
+		// the error is only ever one error, ErrNoCookie.
+		// return false if we get it.
+		return false
+	} else {
+		// otherwise, it's there! return true.
+		return true
+	}
+}
+
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.r.ServeHTTP(w, r)
 }
@@ -117,7 +131,8 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		Guild         *discord.Guild
 		ForumChannels []ForumChannel
-	}{Guild: guild}
+		CDNConsent    bool
+	}{Guild: guild, CDNConsent: s.CDNConsent(r)}
 	channels, err := s.discord.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -173,10 +188,11 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := struct {
-		Guild *discord.Guild
-		Forum *discord.Channel
-		Posts []discord.Channel
-	}{guild, forum, nil}
+		Guild      *discord.Guild
+		Forum      *discord.Channel
+		Posts      []discord.Channel
+		CDNConsent bool
+	}{guild, forum, nil, s.CDNConsent(r)}
 	guildThreads, err := s.discord.ActiveThreads(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -212,7 +228,8 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		Forum         *discord.Channel
 		Post          *discord.Channel
 		MessageGroups [][]Message
-	}{guild, forum, post, nil}
+		CDNConsent    bool
+	}{guild, forum, post, nil, s.CDNConsent(r)}
 
 	msgs, err := s.discord.Client.Messages(post.ID, 0)
 	if err != nil {

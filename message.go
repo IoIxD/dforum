@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
@@ -19,9 +20,9 @@ var Replacer = strings.NewReplacer(
 
 type Message struct {
 	discord.Message
-	RenderedContent  template.HTML
 	MediaPreviews    []MediaPreview
 	PlainAttachments []PlainAttachment
+	Cabinet          *store.Cabinet
 }
 
 type MediaPreview struct {
@@ -37,8 +38,8 @@ type PlainAttachment struct {
 // message massages a discord.Message into a Message for passing to templates
 func (s *server) message(m discord.Message) Message {
 	msg := Message{
-		Message:         m,
-		RenderedContent: s.renderContent(m),
+		Message: m,
+		Cabinet: *&s.discord.Cabinet,
 	}
 	var mediapreviews []MediaPreview
 	for _, e := range m.Embeds {
@@ -85,32 +86,60 @@ func (s *server) message(m discord.Message) Message {
 	return msg
 }
 
-func (s *server) renderContent(m discord.Message) template.HTML {
+func (m *Message) RenderMessageWithEmotes() template.HTML {
+	return m.render(true)
+}
+func (m *Message) RenderMessageWithoutEmotes() template.HTML {
+	return m.render(false)
+}
+
+func (m *Message) render(renderEmotes bool) template.HTML {
 	if m.Content != "" &&
 		(len(m.Embeds) == 1 && m.Embeds[0].Type == discord.ImageEmbed && m.Embeds[0].URL == m.Content) {
 		return ""
 	}
 	var sb strings.Builder
 	src := []byte(m.Content)
-	ast := discordmd.ParseWithMessage(src, *s.discord.Cabinet, &m, true)
+	ast := discordmd.ParseWithMessage(src, *m.Cabinet, &m.Message, true)
+	var r Renderer
+	if renderEmotes {
+		r = RendererWithEmotes{}
+	} else {
+		r = RendererNoEmotes{}
+	}
 	renderer := renderer.NewRenderer(
 		renderer.WithNodeRenderers(
 			util.Prioritized(mdhtml.NewRenderer(), 0),
-			util.Prioritized(mentionRenderer{}, 0),
-			util.Prioritized(emoteRenderer{}, 0),
-			util.Prioritized(inlineRenderer{}, 0),
+			util.Prioritized(r, 0),
 		),
 	)
 	renderer.Render(&sb, src, ast)
 	return template.HTML(Replacer.Replace(sb.String()))
 }
 
-type mentionRenderer struct{}
-
-func (r mentionRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	reg.Register(discordmd.KindMention, r.render)
+type Renderer interface{}
+type RendererShared struct{}
+type RendererWithEmotes struct {
+	RendererShared
+	Renderer
 }
-func (r mentionRenderer) render(writer util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+type RendererNoEmotes struct {
+	RendererShared
+	Renderer
+}
+
+func (r RendererWithEmotes) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+	reg.Register(discordmd.KindMention, r.renderMentions)
+	reg.Register(discordmd.KindEmoji, r.renderEmojis)
+	reg.Register(discordmd.KindInline, r.renderMarkdown)
+}
+func (r RendererNoEmotes) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+	reg.Register(discordmd.KindMention, r.renderMentions)
+	reg.Register(discordmd.KindEmoji, r.renderEmojiNames)
+	reg.Register(discordmd.KindInline, r.renderMarkdown)
+}
+
+func (r RendererShared) renderMentions(writer util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		m := n.(*discordmd.Mention)
 		switch {
@@ -130,12 +159,7 @@ func (r mentionRenderer) render(writer util.BufWriter, source []byte, n ast.Node
 	return ast.WalkContinue, nil
 }
 
-type emoteRenderer struct{}
-
-func (r emoteRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	reg.Register(discordmd.KindEmoji, r.render)
-}
-func (r emoteRenderer) render(writer util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r RendererShared) renderEmojis(writer util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		e, ok := n.(*discordmd.Emoji)
 		if ok {
@@ -145,10 +169,14 @@ func (r emoteRenderer) render(writer util.BufWriter, source []byte, n ast.Node, 
 	return ast.WalkContinue, nil
 }
 
-type inlineRenderer struct{}
-
-func (r inlineRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	reg.Register(discordmd.KindInline, r.render)
+func (r RendererShared) renderEmojiNames(writer util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		e, ok := n.(*discordmd.Emoji)
+		if ok {
+			writer.WriteString(`<a class='brokenimage' href='https://cdn.discordapp.com/emojis/` + e.ID + `.webp?size=40'>:` + e.Name + `:</a>`)
+		}
+	}
+	return ast.WalkContinue, nil
 }
 
 var attrElements = []struct {
@@ -162,7 +190,7 @@ var attrElements = []struct {
 	{discordmd.AttrMonospace, "code"},
 }
 
-func (r inlineRenderer) render(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r RendererShared) renderMarkdown(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	i := n.(*discordmd.Inline)
 	if entering {
 		for _, at := range attrElements {
