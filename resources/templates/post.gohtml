@@ -23,7 +23,7 @@
 <h2>{{.Post.Name}}</h2>
 
 {{if gt (len .MessageGroups) 0}}
-  {{$firstPost := (index (index .MessageGroups 0) 0)}}
+  {{$firstPost := (index (index .MessageGroups 0).Messages 0)}}
   {{$desc = (TrimForMeta $firstPost.Content)}}
   {{if $firstPost.MediaPreviews}}
         {{$image = (index $firstPost.MediaPreviews 0).Thumbnail}}
@@ -36,23 +36,26 @@
 
 <div>
 {{range .MessageGroups}}
-{{$firstMsg := (index . 0)}}
+{{$firstMsg := (index .Messages 0).Message}}
 <div class='post flex roworcolumn'>
     <div class='author flex column'>
         {{if $.CDNConsent}}
-            <img class='small-avatar' src="{{(index . 0).Author.AvatarURL}}">
+            <img class='small-avatar' src="{{.Author.Avatar}}">
         {{end}}
         <div>{{$firstMsg.Author.Username}}</div>
         {{if $.CDNConsent}}
-            <img src="{{(index . 0).Author.AvatarURL}}">
+            <img src="{{.Author.Avatar}}">
         {{else}}
-            <a class='brokenimage' href='{{(index . 0).Author.AvatarURL}}'>[Avatar]</a><br>
+            <a class='brokenimage' href='{{.Author.Avatar}}'>[Avatar]</a><br>
         {{end}}
         <ul class="badges">
-        {{if $firstMsg.Author.Bot}}
+        {{if .Author.Role}}
+            <li {{if .Author.RoleColor}}style="box-shadow: inset 2px 2px {{.Author.RoleColor}}, inset -2px -2px {{.Author.RoleColor}};"{{end}}>{{.Author.Role}}</li>
+        {{end}}
+        {{if .Author.Bot}}
             <li>BOT</li>
         {{end}}
-        {{if eq $op $firstMsg.Author.ID}}
+        {{if eq $op .Author.ID}}
             <li>OP</li>
         {{end}}
         <span class='timestamp'>{{$firstMsg.ID.Time.Format "Jan 2 2006 3:04 PM"}}</time></span>
@@ -60,7 +63,7 @@
     </div>
     <div class='content'>
     <span class='timestamp'>Posted {{$firstMsg.ID.Time.Format "January 2, 2006 3:04 PM"}}</time></span>
-    {{range .}}
+    {{range .Messages}}
         {{if $.CDNConsent}}
             {{.RenderMessageWithEmotes}}
         {{else}}
@@ -81,21 +84,21 @@
             {{end}}
             </span>
         {{end}}
+    {{end}}
+        {{if $.CDNConsent}}
+            <span class='reactions'>
+                {{range $firstMsg.Reactions}}                            
+                    <span class='reaction'>
+                        {{if .Emoji.IsCustom}}
+                            <img class='emoji' src='https://cdn.discordapp.com/emojis/{{.Emoji.ID}}.png?size=40'>
+                        {{else}}
+                            {{.Emoji}}
+                        {{end}}
+                        <span class='count'>{{.Count}}</span>
+                    </span>
+                {{end}}
+            </span>
         {{end}}
-            {{if $.CDNConsent}}
-                <span class='reactions'>
-                    {{range $firstMsg.Reactions}}                            
-                        <span class='reaction'>
-                            {{if .Emoji.IsCustom}}
-                                <img class='emoji' src='https://cdn.discordapp.com/emojis/{{.Emoji.ID}}.png?size=40'>
-                            {{else}}
-                                {{.Emoji}}
-                            {{end}}
-                            <span class='count'>{{.Count}}</span>
-                        </span>
-                    {{end}}
-                </span>
-            {{end}}
     </div>
 </div>
 {{end}}

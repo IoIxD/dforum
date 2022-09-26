@@ -60,7 +60,8 @@ func main() {
 	state := state.New("Bot " + config.BotToken)
 	state.AddIntents(0 |
 		gateway.IntentGuildMessages |
-		gateway.IntentGuilds,
+		gateway.IntentGuilds |
+		gateway.IntentGuildMembers,
 	)
 	if err = state.Open(ctx); err != nil {
 		log.Fatalln("Error while opening gateway connection to Discord:", err)

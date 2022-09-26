@@ -227,7 +227,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		Guild         *discord.Guild
 		Forum         *discord.Channel
 		Post          *discord.Channel
-		MessageGroups [][]Message
+		MessageGroups []MessageGroup
 		CDNConsent    bool
 	}{guild, forum, post, nil, s.CDNConsent(r)}
 
@@ -240,15 +240,17 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(msgs, func(i, j int) bool {
 		return msgs[i].ID < msgs[j].ID
 	})
-	var msgrps [][]Message
+	var msgrps []MessageGroup
 	i := -1
 	for _, m := range msgs {
+		m.GuildID = guild.ID
 		msg := s.message(m)
-		if i == -1 || msgrps[i][0].Author.ID != m.Author.ID {
-			msgrps = append(msgrps, []Message{msg})
+		if i == -1 || msgrps[i].Author.ID != m.Author.ID {
+			auth := s.author(m)
+			msgrps = append(msgrps, MessageGroup{auth, []Message{msg}})
 			i++
 		} else {
-			msgrps[i] = append(msgrps[i], msg)
+			msgrps[i].Messages = append(msgrps[i].Messages, msg)
 		}
 	}
 	ctx.MessageGroups = msgrps

@@ -153,7 +153,7 @@ nav a {
 }
 .post .author {
     background: #ddd;
-    max-width: 30%;
+    max-width: 15%;
     min-width: 150px;
     margin-right: 10px;
     padding: 10px;
@@ -174,12 +174,14 @@ nav a {
     list-style-type: none;
     margin: 0;
     padding: 0;
+    text-align: center;
 }
 .post .badges li {
-    width: 1.5em;
     background: #bbb;
     padding: 4px;
     margin: 4px auto;
+    text-align: center;
+    display: inline-block;
 }
 .post .timestamp {
     padding: 4px;
