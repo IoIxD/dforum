@@ -131,8 +131,7 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		Guild         *discord.Guild
 		ForumChannels []ForumChannel
-		CDNConsent    bool
-	}{Guild: guild, CDNConsent: s.CDNConsent(r)}
+	}{Guild: guild}
 	channels, err := s.discord.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -188,11 +187,10 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := struct {
-		Guild      *discord.Guild
-		Forum      *discord.Channel
-		Posts      []discord.Channel
-		CDNConsent bool
-	}{guild, forum, nil, s.CDNConsent(r)}
+		Guild *discord.Guild
+		Forum *discord.Channel
+		Posts []discord.Channel
+	}{guild, forum, nil}
 	guildThreads, err := s.discord.ActiveThreads(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,

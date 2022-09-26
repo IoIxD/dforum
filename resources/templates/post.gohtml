@@ -1,4 +1,7 @@
 {{ template "header.gohtml" .}}
+{{if not .CDNConsent}}
+    {{template "cdnconsent.gohtml"}}
+{{end}}
 {{$op := .Post.OwnerID}}
 {{$desc := "???"}}
 {{$image := ""}}
