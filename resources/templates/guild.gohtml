@@ -20,8 +20,12 @@
             <a href="/{{$.Guild.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
         </div>
         <div>
-            <span class='label'>Last active at </span>
-            <time>{{.LastActive.Format "Jan 2 2006 3:04 PM"}}</time>
+            {{if and (ne .LastActive.Unix 0) (ne .LastActive.Unix 5818116911)}}
+                <span class='label'>Last active at </span>
+                <time>{{.LastActive.Format "Jan 2 2006 3:04 PM"}}</time>
+            {{else}}
+                -
+            {{end}}
         </div>
         <div>
             {{len .Posts}}
