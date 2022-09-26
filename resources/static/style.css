@@ -42,39 +42,9 @@ img[src*=SPOILER_]:hover {
     transition: 0.2s linear;
 }
 
-.topics, .threads {
-    display: block;
-}
-
-.topics button {
-    float: right;
-    border: none;
-    outline: none;
-    padding: 5px;
-    background: #ddd;
-}
-
-.title, .threadnum {
-    padding: 5px;
-}
-
 .row {
     display:block;
     margin: 5px 0;
-}
-
-.title {
-    background: #ddd;
-    flex: 3;
-    -moz-box-flex: 3;
-    margin: 2px;
-}
-
-.threadnum {
-    background: #ccc;
-    margin: 2px;
-    flex: 1;
-    -moz-box-flex: 1;
 }
 
 .flex {
