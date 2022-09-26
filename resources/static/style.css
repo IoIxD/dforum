@@ -211,13 +211,13 @@ nav a {
 
 .cdnconsent {
     width: 100%;
-    width: calc(100% - 2em);
+    width: calc(100% - 16px);
     position: fixed;
     top: 0;
     left: 0;
     background: black;
     color: white;
-    padding: 2em;
+    padding: 16px;
     font-size: 18px;
     font-weight: bold;
     text-align: center;
@@ -233,6 +233,13 @@ nav a {
     -webkit-border-radius: 6px;
     border-radius: 6px;
 }
+
+.brokenimage {
+    font-style: italic;
+    vertical-align: middle;
+    text-decoration: dashed underline 1px;
+}
+
 
 /* mobile */
 
