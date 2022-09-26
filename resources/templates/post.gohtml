@@ -1,5 +1,5 @@
 {{ template "header.gohtml" .}}
-{{$op := 0}}
+{{$op := .Post.OwnerID}}
 {{$desc := "???"}}
 {{$image := ""}}
 
@@ -24,7 +24,6 @@
 
 {{if gt (len .MessageGroups) 0}}
   {{$firstPost := (index (index .MessageGroups 0) 0)}}
-  {{$op = $firstPost.Author.ID}}
   {{$desc = (TrimForMeta $firstPost.Content)}}
   {{if $firstPost.MediaPreviews}}
         {{$image = (index $firstPost.MediaPreviews 0).Thumbnail}}

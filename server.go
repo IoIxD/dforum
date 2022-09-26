@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"math"
 	"net/http"
 	"sort"
 	"sync"
@@ -144,7 +143,7 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 				msgcount += post.MessageCount
 			}
 			var lastactive time.Time
-			if ch.LastMessageID == math.MaxUint64 {
+			if !ch.LastMessageID.IsValid() {
 				lastactive = time.Unix(0, 0)
 			} else {
 				lastactive = ch.LastMessageID.Time()
