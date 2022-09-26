@@ -143,9 +143,7 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 				msgcount += post.MessageCount
 			}
 			var lastactive time.Time
-			if !ch.LastMessageID.IsValid() {
-				lastactive = time.Unix(0, 0)
-			} else {
+			if ch.LastMessageID.IsValid() {
 				lastactive = ch.LastMessageID.Time()
 			}
 			for _, post := range posts {
