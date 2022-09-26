@@ -14,9 +14,9 @@
 </nav>
 
 <div class='tabular-list post-list'>
-    <div class='title'>Title</div>
-    <div class='active'>Last Active</div>
-    <div class='messages'>Messages</div>
+    <div>Title</div>
+    <div class='highlight'>Last Active</div>
+    <div>Messages</div>
     {{range .Posts}}
         <div class='title'>
             <a href="/{{$.Guild.ID}}/{{$.Forum.ID}}/{{.ID}}"><b>{{.Name}}</b></a>

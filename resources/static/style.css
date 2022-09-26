@@ -210,36 +210,33 @@ nav a {
 
 /* mobile */
 
-@supports (display: grid) {
+.highlight {
+    background: #ccc!important;
+}
 
-    .tabular-list {
-        display: grid;
-    }
+.tabular-list {
+    display: grid;
+}
 
-    .forum-list {
-        grid-template-columns: 3fr 2fr 1fr 1fr;
-    }
+.forum-list {
+    grid-template-columns: 3fr 2fr 1fr 1fr;
+}
 
-    .post-list {
-        grid-template-columns: 2fr 1fr 1fr;
-    }
+.post-list {
+    grid-template-columns: 2fr 1fr 1fr;
+}
 
-    .tabular-list > div {
-        margin: 5px;
-        padding: 5px;
-    }
+.tabular-list > div {
+    margin: 5px;
+    padding: 5px;
+}
 
-    /* set background color of every third div */
-    .tabular-list > div {
-        background: #ddd;
-    }
-    .tabular-list .label {
-        display: none;
-    }
-
-    .active {
-        background: #ccc!important;
-    }
+/* set background color of every third div */
+.tabular-list > div {
+    background: #ddd;
+}
+.tabular-list .label {
+    display: none;
 }
 
 @media (max-width: 600px) {
