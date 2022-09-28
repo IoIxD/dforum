@@ -3,6 +3,7 @@ module github.com/IoIxD/DFS
 go 1.19
 
 require (
+	github.com/chai2010/webp v1.1.1
 	github.com/diamondburned/ningen/v3 v3.0.0-20220619214735-56004aa62571
 	github.com/naoina/toml v0.1.1
 )

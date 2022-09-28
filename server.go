@@ -51,6 +51,7 @@ func newServer(discord *state.State, fsys fs.FS) *server {
 		})
 	})
 	r.Get("/privacy", s.PrivacyPage)
+	r.Get("/proxy*", s.ProxyPage)
 	r.Get("/static/*", http.FileServer(http.FS(fsys)).ServeHTTP)
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		displayErr(w, http.StatusNotFound, nil)

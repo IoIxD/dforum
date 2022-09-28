@@ -60,7 +60,7 @@
     {{range .Messages}}
         {{.RenderedContent}}
         {{range .MediaPreviews}}
-            <a href="{{.URL}}"><img src="{{.Thumbnail}}"></a>
+            <a href="{{.URL}}"><img src="/proxy?url={{.Thumbnail}}"></a>
         {{end}}
         {{with .PlainAttachments}}
             <span class="attachments">
@@ -75,7 +75,7 @@
             {{range $firstMsg.Reactions}}                            
                 <span class='reaction'>
                     {{if .Emoji.IsCustom}}
-                        <img class='emoji' src='https://cdn.discordapp.com/emojis/{{.Emoji.ID}}.webp?size=40'>
+                        <img class='emoji' src='https://cdn.discordapp.com/emojis/{{.Emoji.ID}}.webp?size=16'>
                     {{else}}
                         {{.Emoji}}
                     {{end}}
