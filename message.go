@@ -41,8 +41,9 @@ type Author struct {
 }
 
 type MediaPreview struct {
-	Thumbnail template.URL
-	URL       template.URL
+	Thumbnail   template.URL
+	URL         template.URL
+	Description string
 }
 
 type PlainAttachment struct {
@@ -77,8 +78,8 @@ func (s *server) message(m discord.Message) Message {
 		mediapreviews = append(
 			mediapreviews,
 			MediaPreview{
-				template.URL(e.Thumbnail.URL),
-				template.URL(url),
+				Thumbnail: template.URL(e.Thumbnail.URL),
+				URL:       template.URL(url),
 			},
 		)
 	}
@@ -93,7 +94,8 @@ func (s *server) message(m discord.Message) Message {
 			continue
 		}
 		mediapreviews = append(mediapreviews, MediaPreview{
-			template.URL(att.URL), template.URL(att.URL),
+			Thumbnail: template.URL(att.URL),
+			URL:       template.URL(att.URL),
 		})
 	}
 	msg.MediaPreviews = mediapreviews
