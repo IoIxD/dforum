@@ -105,7 +105,7 @@ func (s *server) author(m discord.Message) Author {
 	auth := Author{
 		ID:     m.Author.ID,
 		Name:   m.Author.Username,
-		Avatar: m.Author.AvatarURL(),
+		Avatar: m.Author.AvatarURLWithType(discord.WebPImage) + "?size=128",
 		Bot:    m.Author.Bot,
 	}
 	var role string
