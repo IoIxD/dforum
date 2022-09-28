@@ -3,6 +3,7 @@ package main
 import (
 	"html"
 	"html/template"
+	"log"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -17,11 +18,26 @@ var Replacer = strings.NewReplacer(
 	"https://discord.com/channels/", "https://dfs.ioi-xd.net/",
 )
 
+type MessageGroup struct {
+	Author
+	Messages []Message
+}
+
 type Message struct {
 	discord.Message
+	Role             string
 	RenderedContent  template.HTML
 	MediaPreviews    []MediaPreview
 	PlainAttachments []PlainAttachment
+}
+
+type Author struct {
+	ID        discord.UserID
+	Name      string
+	Avatar    string
+	Bot       bool
+	Role      string
+	RoleColor string
 }
 
 type MediaPreview struct {
@@ -83,6 +99,36 @@ func (s *server) message(m discord.Message) Message {
 	msg.MediaPreviews = mediapreviews
 	msg.PlainAttachments = plainatt
 	return msg
+}
+
+func (s *server) author(m discord.Message) Author {
+	auth := Author{
+		ID:     m.Author.ID,
+		Name:   m.Author.Username,
+		Avatar: m.Author.AvatarURL(),
+		Bot:    m.Author.Bot,
+	}
+	var role string
+	var color string
+	mr, err := s.discord.Member(m.GuildID, m.Author.ID)
+	if err == nil {
+		for _, rid := range mr.RoleIDs {
+			rl, err := s.discord.Role(m.GuildID, rid)
+			if err != nil {
+				continue
+			}
+			if rl.Hoist {
+				role = rl.Name
+				color = rl.Color.String()
+				break
+			}
+		}
+	} else {
+		log.Println("Failed to get a member: ", err)
+	}
+	auth.Role = role
+	auth.RoleColor = color
+	return auth
 }
 
 func (s *server) renderContent(m discord.Message) template.HTML {
