@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -58,7 +57,9 @@ func (s *server) ProxyPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var webpImage bytes.Buffer
-	err = webp.Encode(&webpImage, image, nil)
+	err = webp.Encode(&webpImage, image, &webp.Options{
+		Quality: 25,
+	})
 	if err != nil {
 		w.WriteHeader(500)
 		w.Header().Add("Content-Name", "error.html")
