@@ -179,6 +179,7 @@ nav a {
     max-height: 256px;
     max-height: 40vh;
     height: auto;
+    display: block;
 }
 
 /* mobile */
