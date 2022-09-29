@@ -60,7 +60,7 @@
     {{range .Messages}}
         {{.RenderedContent}}
         {{range .MediaPreviews}}
-            <a href="{{.URL}}"><img alt="{{.Description}}" src="{{.Thumbnail}}"></a>
+            <a href="{{.URL}}"><img {{with .Description}}alt="{{.}}"{{end}} src="{{.Thumbnail}}"></a>
         {{end}}
         {{with .PlainAttachments}}
             <span class="attachments">
