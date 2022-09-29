@@ -156,8 +156,8 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-	sort.SliceStable(ctx.ForumChannels, func(a, b int) bool {
-		return ctx.ForumChannels[a].LastActive.Unix() > ctx.ForumChannels[b].LastActive.Unix()
+	sort.SliceStable(ctx.ForumChannels, func(i, j int) bool {
+		return ctx.ForumChannels[i].LastActive.Before(ctx.ForumChannels[j].LastActive)
 	})
 	s.executeTemplate(w, "guild.gohtml", ctx)
 }
@@ -188,8 +188,11 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 			ctx.Posts = append(ctx.Posts, t)
 		}
 	}
-	sort.SliceStable(ctx.Posts, func(a, b int) bool {
-		return ctx.Posts[a].LastMessageID.Time().Unix() > ctx.Posts[b].LastMessageID.Time().Unix()
+	sort.SliceStable(ctx.Posts, func(i, j int) bool {
+		if ctx.Posts[i].Flags^ctx.Posts[j].Flags&discord.PinnedThread != 0 {
+			return ctx.Posts[i].Flags&discord.PinnedThread != 0
+		}
+		return ctx.Posts[i].LastMessageID.Time().Before(ctx.Posts[j].LastMessageID.Time())
 	})
 	s.executeTemplate(w, "forum.gohtml", ctx)
 }
