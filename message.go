@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html"
 	"html/template"
 	"log"
@@ -16,6 +17,11 @@ import (
 
 var Replacer = strings.NewReplacer(
 	"https://discord.com/channels/", "https://dfs.ioi-xd.net/",
+)
+
+const (
+	MaxThumbnailWidth  = 600
+	MaxThumbnailHeight = 600
 )
 
 type MessageGroup struct {
@@ -49,6 +55,27 @@ type MediaPreview struct {
 type PlainAttachment struct {
 	Name string
 	URL  template.URL
+}
+
+func attachmentThumbnail(at discord.Attachment) template.URL {
+	w, h := at.Width, at.Height
+	if w > MaxThumbnailWidth {
+		h = h * MaxThumbnailWidth / w
+		w = MaxThumbnailWidth
+	}
+	if h > MaxThumbnailHeight {
+		w = w * MaxThumbnailHeight / h
+		h = MaxThumbnailHeight
+	}
+
+	const urlprefixlen = len("https://cdn.discordapp.com/")
+	if len(at.URL) < urlprefixlen {
+		return ""
+	}
+	return template.URL(fmt.Sprintf(
+		"https://media.discordapp.net/%s?width=%d&height=%d",
+		at.URL[urlprefixlen:], w, h,
+	))
 }
 
 // message massages a discord.Message into a Message for passing to templates
@@ -94,8 +121,9 @@ func (s *server) message(m discord.Message) Message {
 			continue
 		}
 		mediapreviews = append(mediapreviews, MediaPreview{
-			Thumbnail: template.URL(att.URL),
-			URL:       template.URL(att.URL),
+			Thumbnail:   attachmentThumbnail(att),
+			URL:         template.URL(att.URL),
+			Description: att.Description,
 		})
 	}
 	msg.MediaPreviews = mediapreviews
@@ -107,7 +135,7 @@ func (s *server) author(m discord.Message) Author {
 	auth := Author{
 		ID:     m.Author.ID,
 		Name:   m.Author.Username,
-		Avatar: m.Author.AvatarURL(),
+		Avatar: m.Author.AvatarURLWithType(discord.WebPImage) + "?size=128",
 		Bot:    m.Author.Bot,
 	}
 	var role string
