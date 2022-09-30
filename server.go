@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/go-chi/chi/v5"
@@ -20,7 +21,8 @@ import (
 type server struct {
 	r *chi.Mux
 
-	discord *state.State
+	discord      *state.State
+	messageCache *messageCache
 
 	sitemap        []byte
 	sitemapUpdated time.Time
@@ -32,6 +34,16 @@ type server struct {
 func newServer(discord *state.State, fsys fs.FS) *server {
 	s := new(server)
 	s.discord = discord
+	s.messageCache = newMessageCache(discord.Client)
+	discord.AddHandler(func(m *gateway.MessageCreateEvent) {
+		s.messageCache.Set(m.Message, false)
+	})
+	discord.AddHandler(func(m *gateway.MessageUpdateEvent) {
+		s.messageCache.Set(m.Message, true)
+	})
+	discord.AddHandler(func(m *gateway.MessageDeleteEvent) {
+		s.messageCache.Remove(m.ChannelID, m.ID)
+	})
 	s.buffers = &sync.Pool{
 		New: func() any {
 			return new(bytes.Buffer)
@@ -91,6 +103,21 @@ func discordStatusIs(err error, status int) bool {
 	return httperr.Status == status
 }
 
+func (s *server) publicActiveThreads(gid discord.GuildID) ([]discord.Channel, error) {
+	channels, err := s.discord.Cabinet.Channels(gid)
+	if err != nil {
+		return nil, err
+	}
+	var threads []discord.Channel
+	for _, channel := range channels {
+		if channel.Type != discord.GuildPublicThread {
+			continue
+		}
+		threads = append(threads, channel)
+	}
+	return threads, nil
+}
+
 func (s *server) getIndex(w http.ResponseWriter, r *http.Request) {
 	guilds, err := s.discord.Cabinet.Guilds()
 	if err != nil {
@@ -118,23 +145,19 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 		Guild         *discord.Guild
 		ForumChannels []ForumChannel
 	}{Guild: guild}
-	channels, err := s.discord.Channels(guild.ID)
+	channels, err := s.discord.Cabinet.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching guild channels: %s", err))
 		return
 	}
-	threads, err := s.discord.ActiveThreads(guild.ID)
-	if err != nil {
-		displayErr(w, http.StatusInternalServerError,
-			fmt.Errorf("fetching guild active threads: %s", err))
-		return
-	}
 	for _, ch := range channels {
+		fmt.Println(ch.Type)
 		if ch.Type == discord.GuildForum {
 			var posts []discord.Channel
-			for _, t := range threads.Threads {
-				if t.ParentID == ch.ID {
+			for _, t := range channels {
+				if t.ParentID == ch.ID &&
+					t.Type == discord.GuildPublicThread {
 					posts = append(posts, t)
 				}
 			}
@@ -177,15 +200,16 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		Forum *discord.Channel
 		Posts []discord.Channel
 	}{guild, forum, nil}
-	guildThreads, err := s.discord.ActiveThreads(guild.ID)
+	channels, err := s.discord.Cabinet.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching guild threads: %w", err))
 		return
 	}
-	for _, t := range guildThreads.Threads {
-		if t.ParentID == forum.ID {
-			ctx.Posts = append(ctx.Posts, t)
+	for _, thread := range channels {
+		if thread.ParentID == forum.ID &&
+			thread.Type == discord.GuildPublicThread {
+			ctx.Posts = append(ctx.Posts, thread)
 		}
 	}
 	sort.SliceStable(ctx.Posts, func(i, j int) bool {
@@ -217,7 +241,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		MessageGroups []MessageGroup
 	}{guild, forum, post, nil}
 
-	msgs, err := s.discord.Client.Messages(post.ID, 0)
+	msgs, err := s.messageCache.Messages(post.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching post's messages: %w", err))
@@ -250,7 +274,7 @@ func (s *server) guildFromReq(w http.ResponseWriter, r *http.Request) (*discord.
 		return nil, false
 	}
 	guildID := discord.GuildID(guildIDsf)
-	guild, err := s.discord.Guild(guildID)
+	guild, err := s.discord.Cabinet.Guild(guildID)
 	if err != nil {
 		if discordStatusIs(err, http.StatusNotFound) {
 			displayErr(w, http.StatusNotFound, nil)
@@ -270,7 +294,7 @@ func (s *server) forumFromReq(w http.ResponseWriter, r *http.Request) (*discord.
 		return nil, false
 	}
 	forumID := discord.ChannelID(forumIDsf)
-	forum, err := s.discord.Channel(forumID)
+	forum, err := s.discord.Cabinet.Channel(forumID)
 	if err != nil {
 		if discordStatusIs(err, http.StatusNotFound) {
 			displayErr(w, http.StatusNotFound, nil)
@@ -295,7 +319,7 @@ func (s *server) postFromReq(w http.ResponseWriter, r *http.Request) (*discord.C
 		return nil, false
 	}
 	postID := discord.ChannelID(postIDsf)
-	post, err := s.discord.Channel(postID)
+	post, err := s.discord.Cabinet.Channel(postID)
 	if err != nil {
 		if discordStatusIs(err, http.StatusNotFound) {
 			displayErr(w, http.StatusNotFound, nil)

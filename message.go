@@ -143,7 +143,7 @@ func (s *server) author(m discord.Message) Author {
 	mr, err := s.discord.Member(m.GuildID, m.Author.ID)
 	if err == nil {
 		for _, rid := range mr.RoleIDs {
-			rl, err := s.discord.Role(m.GuildID, rid)
+			rl, err := s.discord.Cabinet.Role(m.GuildID, rid)
 			if err != nil {
 				continue
 			}
