@@ -5,13 +5,6 @@
 
 {{$title := print .Post.Name " - " .Guild.Name}}
 
-<title>{{$title}}</title>
-<meta property="og:title" content="{{$title}}">
-<meta property="og:type" content="website">
-<meta property="og:url" content="http://dfs.ioi-xd.net/{{.Guild.ID}}/{{.Forum.ID}}/{{.Post.ID}}">
-<meta property="og:description" content="{{$desc}}">
-<meta property="og:image" content="{{$image}}">
-
 <nav>
 <ul>
     <li><a href="/{{.Guild.ID}}">{{.Guild.Name}}</a></li>
@@ -33,6 +26,13 @@
 {{else}}
     <em>wind blowing noises</em><br><em>some dipshit deleted the top post in their thread and not the thread itself...how sad...</em> 
 {{end}}
+
+<title>{{$title}}</title>
+<meta property="og:title" content="{{$title}}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="http://dfs.ioi-xd.net/{{.Guild.ID}}/{{.Forum.ID}}/{{.Post.ID}}">
+<meta property="og:description" content="{{$desc}}">
+<meta property="og:image" content="{{$image}}">
 
 <div>
 {{range .MessageGroups}}
