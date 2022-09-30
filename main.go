@@ -56,8 +56,7 @@ func main() {
 	ctx, done := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer done()
 
-	// TODO: custom store
-	state := state.New("Bot " + config.BotToken)
+	state := state.New("Bot" + config.BotToken)
 	state.AddIntents(0 |
 		gateway.IntentGuildMessages |
 		gateway.IntentGuilds |
