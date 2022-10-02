@@ -13,11 +13,13 @@ require (
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
+	golang.org/x/sys v0.0.0-20211001092434-39dca1131b70 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 )
 
 require (
-	github.com/diamondburned/arikawa/v3 v3.1.1-0.20220928222229-0c7539c6d535
+	github.com/diamondburned/arikawa/v3 v3.1.1-0.20221002023541-219b1d80d65b
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/yuin/goldmark v1.4.14
