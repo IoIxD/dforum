@@ -28,6 +28,8 @@ github.com/diamondburned/arikawa/v3 v3.1.1-0.20220928222229-0c7539c6d535 h1:SYst
 github.com/diamondburned/arikawa/v3 v3.1.1-0.20220928222229-0c7539c6d535/go.mod h1:5jBSNnp82Z/EhsKa6Wk9FsOqSxfVkNZDTDBPOj47LpY=
 github.com/diamondburned/arikawa/v3 v3.1.1-0.20221002023541-219b1d80d65b h1:38mX6Eq2BnEaz/b2v+XpdXWjp9Z/HH02wRNtQJlRpR0=
 github.com/diamondburned/arikawa/v3 v3.1.1-0.20221002023541-219b1d80d65b/go.mod h1:5jBSNnp82Z/EhsKa6Wk9FsOqSxfVkNZDTDBPOj47LpY=
+github.com/diamondburned/arikawa/v3 v3.1.1-0.20221002050228-3ae45b78164e h1:jrK8tUTBrNMLjBTenS8q934lc12TjcuUNmuXdQnH0s0=
+github.com/diamondburned/arikawa/v3 v3.1.1-0.20221002050228-3ae45b78164e/go.mod h1:5jBSNnp82Z/EhsKa6Wk9FsOqSxfVkNZDTDBPOj47LpY=
 github.com/diamondburned/ningen/v3 v3.0.0-20220619214735-56004aa62571 h1:puq+HgCOAlF5EOQsTLNNGS1wB6Dv7/KwP5uT1TuUSBA=
 github.com/diamondburned/ningen/v3 v3.0.0-20220619214735-56004aa62571/go.mod h1:WLSUx3megnWk5I6rYLE+yPHN3iPJf4Nag2B5Y7l+Vmc=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=

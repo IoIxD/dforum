@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
+	"hash/crc32"
 	"io/fs"
 	"net/http"
 	"sort"
@@ -17,6 +17,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type server struct {
@@ -56,33 +57,44 @@ func newServer(st *state.State, fsys fs.FS) *server {
 	})
 	r := chi.NewRouter()
 	srv.r = r
-	r.Get(`/sitemap.xml`, srv.getSitemap)
-	r.Get("/", srv.getIndex)
+	r.Use(middleware.Logger)
+	getHead(r, `/sitemap.xml`, srv.getSitemap)
+	getHead(r, "/", srv.getIndex)
 	r.Route("/{guildID:\\d+}", func(r chi.Router) {
-		r.Get("/", srv.getGuild)
+		getHead(r, "/", srv.getGuild)
 		r.Route("/{forumID:\\d+}", func(r chi.Router) {
-			r.Get("/", srv.getForum)
+			getHead(r, "/", srv.getForum)
 			r.Route("/{postID:\\d+}", func(r chi.Router) {
-				r.Get("/", srv.getPost)
+				getHead(r, "/", srv.getPost)
 			})
 		})
 	})
-	r.Get("/privacy", srv.PrivacyPage)
-	r.Get("/static/*", http.FileServer(http.FS(fsys)).ServeHTTP)
+	getHead(r, "/privacy", srv.PrivacyPage)
+	getHead(r, "/static/*", http.FileServer(http.FS(fsys)).ServeHTTP)
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		displayErr(w, http.StatusNotFound, nil)
 	}))
 	return srv
 }
 
+func getHead(r chi.Router, path string, handler http.HandlerFunc) {
+	r.Get(path, handler)
+	r.Head(path, handler)
+}
+
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.r.ServeHTTP(w, r)
 }
 
-func (s *server) executeTemplate(w http.ResponseWriter, name string, ctx any) {
+func (s *server) executeTemplate(w http.ResponseWriter, r *http.Request,
+	name string, ctx any) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	buf := s.buffers.Get().(*bytes.Buffer)
 	if err := tmpl.ExecuteTemplate(buf, name, ctx); err == nil {
-		io.Copy(w, buf)
+		checksum := crc32.ChecksumIEEE(buf.Bytes())
+		w.Header().Set("ETag", fmt.Sprintf("\"%x\"", checksum))
+		rdr := bytes.NewReader(buf.Bytes())
+		http.ServeContent(w, r, name, time.Time{}, rdr)
 	} else {
 		displayErr(w, http.StatusInternalServerError, err)
 	}
@@ -131,7 +143,7 @@ func (s *server) getIndex(w http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		GuildCount int
 	}{len(guilds)}
-	s.executeTemplate(w, "index.gohtml", ctx)
+	s.executeTemplate(w, r, "index.gohtml", ctx)
 }
 
 type ForumChannel struct {
@@ -215,7 +227,7 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 	sort.SliceStable(ctx.ForumChannels, func(i, j int) bool {
 		return ctx.ForumChannels[i].LastActive.After(ctx.ForumChannels[j].LastActive)
 	})
-	s.executeTemplate(w, "guild.gohtml", ctx)
+	s.executeTemplate(w, r, "guild.gohtml", ctx)
 }
 
 func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
@@ -257,7 +269,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		}
 		return ctx.Posts[i].LastMessageID.Time().After(ctx.Posts[j].LastMessageID.Time())
 	})
-	s.executeTemplate(w, "forum.gohtml", ctx)
+	s.executeTemplate(w, r, "forum.gohtml", ctx)
 }
 
 func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
@@ -309,7 +321,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	ctx.MessageGroups = msgrps
-	s.executeTemplate(w, "post.gohtml", ctx)
+	s.executeTemplate(w, r, "post.gohtml", ctx)
 }
 
 func (s *server) guildFromReq(w http.ResponseWriter, r *http.Request) (*discord.Guild, bool) {
@@ -378,5 +390,5 @@ func (s *server) postFromReq(w http.ResponseWriter, r *http.Request) (*discord.C
 }
 
 func (s *server) PrivacyPage(w http.ResponseWriter, r *http.Request) {
-	s.executeTemplate(w, "privacy.gohtml", nil)
+	s.executeTemplate(w, r, "privacy.gohtml", nil)
 }
