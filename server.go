@@ -17,6 +17,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type server struct {
@@ -56,6 +57,7 @@ func newServer(st *state.State, fsys fs.FS) *server {
 	})
 	r := chi.NewRouter()
 	srv.r = r
+	r.Use(middleware.Logger)
 	getHead(r, `/sitemap.xml`, srv.getSitemap)
 	getHead(r, "/", srv.getIndex)
 	r.Route("/{guildID:\\d+}", func(r chi.Router) {
