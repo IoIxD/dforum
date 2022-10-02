@@ -9,29 +9,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 )
 
-// PublicArchivedThreadsBefore returns archived threads in the channel that are
-// public.
-func (s *server) PublicArchivedThreadsBefore(
-	// TODO: submit a PR to arikawa to fix it there
-	channelID discord.ChannelID,
-	before discord.Timestamp, limit uint) (api.ArchivedThread, error) {
-
-	var param struct {
-		Before string `schema:"before,omitempty"`
-		Limit  uint   `schema:"limit"`
-	}
-
-	if before.IsValid() {
-		param.Before = before.Format(discord.TimestampFormat)
-	}
-	param.Limit = limit
-
-	var t api.ArchivedThread
-	return t, s.discord.Client.RequestJSON(
-		&t, "GET",
-		api.EndpointChannels+channelID.String()+"/threads/archived/public")
-}
-
 // ensureArchivedThreads ensures that all archived threads in the channel are in
 // the cache.
 func (s *server) ensureArchivedThreads(cid discord.ChannelID) error {
@@ -40,7 +17,7 @@ func (s *server) ensureArchivedThreads(cid discord.ChannelID) error {
 	if _, ok := s.fetchedInactive[cid]; ok {
 		return nil
 	}
-	threads, err := s.PublicArchivedThreadsBefore(cid, discord.Timestamp{}, 0)
+	threads, err := s.discord.PublicArchivedThreadsBefore(cid, discord.Timestamp{}, 0)
 	if err != nil {
 		return err
 	}
