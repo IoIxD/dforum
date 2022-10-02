@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html"
 	"html/template"
-	"log"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -140,21 +139,21 @@ func (s *server) author(m discord.Message) Author {
 	}
 	var role string
 	var color string
-	mr, err := s.discord.Member(m.GuildID, m.Author.ID)
-	if err == nil {
-		for _, rid := range mr.RoleIDs {
-			rl, err := s.discord.Role(m.GuildID, rid)
-			if err != nil {
-				continue
-			}
-			if rl.Hoist {
-				role = rl.Name
-				color = rl.Color.String()
-				break
-			}
+	mr, err := s.discord.Cabinet.Member(m.GuildID, m.Author.ID)
+	if err != nil {
+		// not a real error, just means the user is not in the guild
+		return auth
+	}
+	for _, rid := range mr.RoleIDs {
+		rl, err := s.discord.Cabinet.Role(m.GuildID, rid)
+		if err != nil {
+			continue
 		}
-	} else {
-		log.Println("Failed to get a member: ", err)
+		if rl.Hoist {
+			role = rl.Name
+			color = rl.Color.String()
+			break
+		}
 	}
 	auth.Role = role
 	auth.RoleColor = color

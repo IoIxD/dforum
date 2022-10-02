@@ -76,38 +76,29 @@ func (s *server) writeSitemap(w io.Writer) error {
 			return err
 		}
 
-		channels, err := s.discord.Channels(guild.ID)
+		channels, err := s.discord.Cabinet.Channels(guild.ID)
 		if err != nil {
 			return err
 		}
-		threads, err := s.discord.ActiveThreads(guild.ID)
-		if err != nil {
-			return err
-		}
-		for _, channel := range channels {
-			if channel.Type != discord.GuildForum {
+		for _, forum := range channels {
+			if forum.Type != discord.GuildForum {
 				continue
 			}
 			if err = enc.Encode(URL{
-				Location: fmt.Sprintf("https://dfs.ioi-xd.net/%s/%s", guild.ID, channel.ID),
+				Location: fmt.Sprintf("https://dfs.ioi-xd.net/%s/%s", guild.ID, forum.ID),
 			}); err != nil {
 				return err
 			}
-		}
-		for _, thread := range threads.Threads {
-			for _, channel := range channels {
-				if channel.Type != discord.GuildForum {
-					continue
-				}
-				if thread.ParentID != channel.ID {
+			for _, thread := range channels {
+				if thread.ParentID != forum.ID ||
+					thread.Type != discord.GuildPublicThread {
 					continue
 				}
 				if err = enc.Encode(URL{
-					Location: fmt.Sprintf("https://dfs.ioi-xd.net/%s/%s/%s", guild.ID, channel.ID, thread.ID),
+					Location: fmt.Sprintf("https://dfs.ioi-xd.net/%s/%s/%s", guild.ID, forum.ID, thread.ID),
 				}); err != nil {
 					return err
 				}
-				break
 			}
 		}
 	}
