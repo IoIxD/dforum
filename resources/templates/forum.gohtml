@@ -19,6 +19,7 @@
     <div class='header'>Messages</div>
     {{range .Posts}}
         <div class='title'>
+            {{if IsPostPinned .}}{{template "icon-push-pin"}}{{end}}
             <a href="/{{$.Guild.ID}}/{{$.Forum.ID}}/{{.ID}}"><b>{{.Name}}</b></a>
         </div>
         <div class='active'>

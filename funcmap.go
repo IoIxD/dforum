@@ -3,11 +3,14 @@ package main
 import (
 	"fmt"
 	"time"
+
+	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 var funcMap = map[string]any{
 	"PrettyTimeSince": PrettyTimeSince,
 	"TrimForMeta":     TrimForMeta,
+	"IsPostPinned":    IsPostPinned,
 }
 
 // Trim a string to 128 characters, for meta tags.
@@ -52,4 +55,8 @@ func PrettyTimeSince(timestamp time.Time) string {
 	default:
 		return fmt.Sprintf("%d years ago", dur/(time.Hour*24*7*4*12))
 	}
+}
+
+func IsPostPinned(post discord.Channel) bool {
+	return post.Flags&discord.PinnedThread != 0
 }
