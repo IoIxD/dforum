@@ -209,6 +209,13 @@ nav a {
     display: none;
 }
 
+.icon {
+    display: inline-block;
+    line-height: 1em;
+    width: 1.1em;
+    vertical-align: -0.2em;
+}
+
 @media (max-width: 600px) {
     nav li {
         display: block;
