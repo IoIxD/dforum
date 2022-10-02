@@ -17,7 +17,7 @@ func (s *server) ensureArchivedThreads(cid discord.ChannelID) error {
 	if _, ok := s.fetchedInactive[cid]; ok {
 		return nil
 	}
-	threads, err := s.discord.PublicArchivedThreadsBefore(cid, discord.Timestamp{}, 0)
+	threads, err := s.discord.PublicArchivedThreads(cid, discord.Timestamp{}, 0)
 	if err != nil {
 		return err
 	}

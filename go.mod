@@ -19,7 +19,7 @@ require (
 )
 
 require (
-	github.com/diamondburned/arikawa/v3 v3.1.1-0.20221002023541-219b1d80d65b
+	github.com/diamondburned/arikawa/v3 v3.1.1-0.20221002050228-3ae45b78164e
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/yuin/goldmark v1.4.14
