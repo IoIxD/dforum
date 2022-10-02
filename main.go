@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -56,7 +57,7 @@ func main() {
 	ctx, done := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer done()
 
-	state := state.New("Bot" + config.BotToken)
+	state := state.New("Bot " + strings.Replace(config.BotToken, " ", "", 99))
 	state.AddIntents(0 |
 		gateway.IntentGuildMessages |
 		gateway.IntentGuilds |
