@@ -235,6 +235,15 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 	s.executeTemplate(w, r, "guild.gohtml", ctx)
 }
 
+type Post struct {
+	discord.Channel
+	Tags []discord.Tag
+}
+
+func (p Post) IsPinned() bool {
+	return p.Channel.Flags&discord.PinnedThread != 0
+}
+
 func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	guild, ok := s.guildFromReq(w, r)
 	if !ok {
@@ -254,7 +263,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		Guild *discord.Guild
 		Forum *discord.Channel
-		Posts []discord.Channel
+		Posts []Post
 		URL   string
 	}{guild, forum, nil, s.URL}
 	channels, err := s.discord.Cabinet.Channels(guild.ID)
@@ -264,10 +273,19 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, thread := range channels {
-		if thread.ParentID == forum.ID &&
-			thread.Type == discord.GuildPublicThread {
-			ctx.Posts = append(ctx.Posts, thread)
+		if thread.ParentID != forum.ID ||
+			thread.Type != discord.GuildPublicThread {
+			continue
 		}
+		post := Post{Channel: thread}
+		for _, tag := range thread.AppliedTags {
+			for _, availtag := range forum.AvailableTags {
+				if availtag.ID == tag {
+					post.Tags = append(post.Tags, availtag)
+				}
+			}
+		}
+		ctx.Posts = append(ctx.Posts, post)
 	}
 	sort.SliceStable(ctx.Posts, func(i, j int) bool {
 		if ctx.Posts[i].Flags^ctx.Posts[j].Flags&discord.PinnedThread != 0 {
