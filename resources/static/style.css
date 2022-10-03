@@ -197,7 +197,26 @@ nav a {
 }
 
 .post-list {
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr .3fr;
+}
+
+.post-list .tag-list {
+    display: inline;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.post-list .tag-list li {
+    background: #bbb;
+    padding: 1px 2px;
+    display: inline;
+}
+
+.post-list .tag-list .emoji {
+    vertical-align: middle;
+    width: 1em;
+    height: 1em;
 }
 
 .tabular-list > div {
@@ -249,6 +268,13 @@ nav a {
     .post .content .timestamp,
     .forum-list .header, .post-list .header{
         display: none;
+    }
+    .post-list .tag-list::before {
+        content: "Tags: ";
+    }
+    .post-list .tag-list {
+        display: block;
+        padding-top: 10px;
     }
     .postinfo img {
         max-width: 100%;
