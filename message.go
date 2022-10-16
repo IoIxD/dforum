@@ -13,11 +13,6 @@ import (
 	mdhtml "github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/util"
 )
-
-var Replacer = strings.NewReplacer(
-	"https://discord.com/channels/", siteURL,
-)
-
 const (
 	MaxThumbnailWidth  = 600
 	MaxThumbnailHeight = 600
@@ -177,7 +172,7 @@ func (s *server) renderContent(m discord.Message) template.HTML {
 		),
 	)
 	renderer.Render(&sb, src, ast)
-	return template.HTML(Replacer.Replace(sb.String()))
+	return template.HTML(strings.ReplaceAll(sb.String(),"https://discord.com/channels",siteURL))
 }
 
 type mentionRenderer struct{}
