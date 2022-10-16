@@ -15,7 +15,7 @@ import (
 )
 
 var Replacer = strings.NewReplacer(
-	"https://discord.com/channels/", "https://dfs.ioi-xd.net/",
+	"https://discord.com/channels/", siteURL,
 )
 
 const (
