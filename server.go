@@ -36,15 +36,18 @@ type server struct {
 	sitemapUpdated time.Time
 	sitemapMu      sync.Mutex
 
+	URL string
+
 	buffers *sync.Pool
 }
 
-func newServer(st *state.State, fsys fs.FS) *server {
+func newServer(st *state.State, fsys fs.FS, siteURL string) *server {
 	srv := &server{
 		fetchedInactive: make(map[discord.ChannelID]struct{}),
 		discord:         st,
 		messageCache:    newMessageCache(st.Client),
 		buffers:         &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
+		URL:             siteURL,
 	}
 	st.AddHandler(func(m *gateway.MessageCreateEvent) {
 		srv.messageCache.Set(m.Message, false)
@@ -142,7 +145,8 @@ func (s *server) getIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := struct {
 		GuildCount int
-	}{len(guilds)}
+		URL        string
+	}{len(guilds), s.URL}
 	s.executeTemplate(w, r, "index.gohtml", ctx)
 }
 
@@ -161,7 +165,8 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		Guild         *discord.Guild
 		ForumChannels []ForumChannel
-	}{Guild: guild}
+		URL           string
+	}{Guild: guild, URL: s.URL}
 	channels, err := s.discord.Cabinet.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -250,7 +255,8 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		Guild *discord.Guild
 		Forum *discord.Channel
 		Posts []discord.Channel
-	}{guild, forum, nil}
+		URL   string
+	}{guild, forum, nil, s.URL}
 	channels, err := s.discord.Cabinet.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -290,7 +296,8 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		Forum         *discord.Channel
 		Post          *discord.Channel
 		MessageGroups []MessageGroup
-	}{guild, forum, post, nil}
+		URL           string
+	}{guild, forum, post, nil, s.URL}
 
 	msgs, err := s.messageCache.Messages(post.ID)
 	if err != nil {

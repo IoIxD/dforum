@@ -71,7 +71,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 	guilds, _ := s.discord.Cabinet.Guilds()
 	for _, guild := range guilds {
 		if err = enc.Encode(URL{
-			Location: fmt.Sprintf("%s/%s", siteURL, guild.ID),
+			Location: fmt.Sprintf("%s/%s", s.URL, guild.ID),
 		}); err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 				continue
 			}
 			if err = enc.Encode(URL{
-				Location: fmt.Sprintf("%s/%s/%s", siteURL, guild.ID, forum.ID),
+				Location: fmt.Sprintf("%s/%s/%s", s.URL, guild.ID, forum.ID),
 			}); err != nil {
 				return err
 			}
@@ -95,7 +95,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 					continue
 				}
 				if err = enc.Encode(URL{
-					Location: fmt.Sprintf("%s/%s/%s/%s", siteURL, guild.ID, forum.ID, thread.ID),
+					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, thread.ID),
 				}); err != nil {
 					return err
 				}

@@ -20,7 +20,6 @@ import (
 //go:embed resources
 var embedfs embed.FS
 var tmpl *template.Template
-var siteURL string
 
 func main() {
 	cfgpath := flag.String("config", "config.toml", "path to config.toml")
@@ -38,7 +37,6 @@ func main() {
 	if err := toml.Unmarshal(file, &config); err != nil {
 		log.Fatalln("Error while parsing config:", err)
 	}
-	siteURL = config.SiteURL
 
 	var fsys fs.FS
 	if config.Resources != "" {
@@ -74,7 +72,7 @@ func main() {
 	}
 	log.Printf("Connected to Discord as %s#%s (%s)\n", self.Username, self.Discriminator, self.ID)
 
-	server := newServer(state, fsys)
+	server := newServer(state, fsys, config.SiteURL)
 	httpserver := &http.Server{
 		Addr:           config.ListenAddr,
 		Handler:        server,

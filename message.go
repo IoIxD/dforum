@@ -173,7 +173,7 @@ func (s *server) renderContent(m discord.Message) template.HTML {
 		),
 	)
 	renderer.Render(&sb, src, ast)
-	return template.HTML(strings.ReplaceAll(sb.String(), "https://discord.com/channels", siteURL))
+	return template.HTML(strings.ReplaceAll(sb.String(), "https://discord.com/channels", s.URL))
 }
 
 type mentionRenderer struct{}
