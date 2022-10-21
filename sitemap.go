@@ -80,22 +80,43 @@ func (s *server) writeSitemap(w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		for _, forum := range channels {
-			if forum.Type != discord.GuildForum {
+		var forums []discord.Channel
+		for _, channel := range channels {
+			if channel.Type != discord.GuildForum {
 				continue
 			}
+			me, _ := s.discord.Cabinet.Me()
+			perms, err := s.discord.Permissions(channel.ID, me.ID)
+			if err != nil {
+				return fmt.Errorf("fetching channel permissions: %s", err)
+			}
+			if !perms.Has(0 |
+				discord.PermissionReadMessageHistory |
+				discord.PermissionViewChannel) {
+				continue
+			}
+			err = s.ensureArchivedThreads(channel.ID)
+			if err != nil {
+				return fmt.Errorf("fetching archived threads: %s", err)
+			}
+			forums = append(forums, channel)
+		}
+		for _, forum := range forums {
 			if err = enc.Encode(URL{
 				Location: fmt.Sprintf("%s/%s/%s", s.URL, guild.ID, forum.ID),
 			}); err != nil {
 				return err
 			}
-			for _, thread := range channels {
-				if thread.ParentID != forum.ID ||
-					thread.Type != discord.GuildPublicThread {
-					continue
+			var posts []discord.Channel
+			for _, t := range channels {
+				if t.ParentID == forum.ID &&
+					t.Type == discord.GuildPublicThread {
+					posts = append(posts, t)
 				}
+			}
+			for _, post := range posts {
 				if err = enc.Encode(URL{
-					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, thread.ID),
+					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
 				}); err != nil {
 					return err
 				}
