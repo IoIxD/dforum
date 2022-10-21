@@ -53,7 +53,7 @@ func (s *server) getSitemap(w http.ResponseWriter, r *http.Request) {
 var XMLURLSetStart = xml.StartElement{
 	Name: xml.Name{Local: "urlset"},
 	Attr: []xml.Attr{
-		{xml.Name{Local: "xmlns"}, "http://www.sitemaps.org/schemas/sitemap/0.9"},
+		{Name: xml.Name{Local: "xmlns"}, Value: "http://www.sitemaps.org/schemas/sitemap/0.9"},
 	},
 }
 
@@ -71,7 +71,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 	guilds, _ := s.discord.Cabinet.Guilds()
 	for _, guild := range guilds {
 		if err = enc.Encode(URL{
-			Location: fmt.Sprintf("https://dfs.ioi-xd.net/%s", guild.ID),
+			Location: fmt.Sprintf("%s/%s", s.URL, guild.ID),
 		}); err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 				continue
 			}
 			if err = enc.Encode(URL{
-				Location: fmt.Sprintf("https://dfs.ioi-xd.net/%s/%s", guild.ID, forum.ID),
+				Location: fmt.Sprintf("%s/%s/%s", s.URL, guild.ID, forum.ID),
 			}); err != nil {
 				return err
 			}
@@ -95,7 +95,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 					continue
 				}
 				if err = enc.Encode(URL{
-					Location: fmt.Sprintf("https://dfs.ioi-xd.net/%s/%s/%s", guild.ID, forum.ID, thread.ID),
+					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, thread.ID),
 				}); err != nil {
 					return err
 				}

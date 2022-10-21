@@ -32,6 +32,7 @@ func main() {
 		BotToken   string
 		ListenAddr string
 		Resources  string
+		SiteURL    string
 	}{ListenAddr: ":8084"}
 	if err := toml.Unmarshal(file, &config); err != nil {
 		log.Fatalln("Error while parsing config:", err)
@@ -71,7 +72,7 @@ func main() {
 	}
 	log.Printf("Connected to Discord as %s#%s (%s)\n", self.Username, self.Discriminator, self.ID)
 
-	server := newServer(state, fsys)
+	server := newServer(state, fsys, config.SiteURL)
 	httpserver := &http.Server{
 		Addr:           config.ListenAddr,
 		Handler:        server,
