@@ -53,7 +53,7 @@ func (s *server) getSitemap(w http.ResponseWriter, r *http.Request) {
 var XMLURLSetStart = xml.StartElement{
 	Name: xml.Name{Local: "urlset"},
 	Attr: []xml.Attr{
-		{xml.Name{Local: "xmlns"}, "http://www.sitemaps.org/schemas/sitemap/0.9"},
+		{Name: xml.Name{Local: "xmlns"}, Value: "http://www.sitemaps.org/schemas/sitemap/0.9"},
 	},
 }
 
