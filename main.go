@@ -30,16 +30,16 @@ func main() {
 		log.Fatalln("Error while reading config:", file)
 	}
 	config := struct {
-		BotToken   	string
-		ListenAddr 	string
-		Resources  	string
-		SiteURL 	string
+		BotToken   string
+		ListenAddr string
+		Resources  string
+		SiteURL    string
 	}{ListenAddr: ":8084"}
 	if err := toml.Unmarshal(file, &config); err != nil {
 		log.Fatalln("Error while parsing config:", err)
 	}
 	siteURL = config.SiteURL
-	
+
 	var fsys fs.FS
 	if config.Resources != "" {
 		fsys = os.DirFS(config.Resources)
