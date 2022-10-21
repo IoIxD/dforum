@@ -80,7 +80,8 @@ func (s *server) writeSitemap(w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		var forums []discord.Channel
+		// we first need to go through these channels and ensure their messages
+		// are cached
 		for _, channel := range channels {
 			if channel.Type != discord.GuildForum {
 				continue
@@ -88,7 +89,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 			me, _ := s.discord.Cabinet.Me()
 			perms, err := s.discord.Permissions(channel.ID, me.ID)
 			if err != nil {
-				return fmt.Errorf("fetching channel permissions: %s", err)
+				return fmt.Errorf("fetching channel permissions for %s: %s", channel.Name, err)
 			}
 			if !perms.Has(0 |
 				discord.PermissionReadMessageHistory |
@@ -97,7 +98,29 @@ func (s *server) writeSitemap(w io.Writer) error {
 			}
 			err = s.ensureArchivedThreads(channel.ID)
 			if err != nil {
-				return fmt.Errorf("fetching archived threads: %s", err)
+				return fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
+			}
+		}
+		// and then go through it again.
+		channels, _ = s.discord.Cabinet.Channels(guild.ID)
+		var forums []discord.Channel
+		for _, channel := range channels {
+			if channel.Type != discord.GuildForum {
+				continue
+			}
+			me, _ := s.discord.Cabinet.Me()
+			perms, err := s.discord.Permissions(channel.ID, me.ID)
+			if err != nil {
+				return fmt.Errorf("fetching channel permissions for %s: %s", channel.Name, err)
+			}
+			if !perms.Has(0 |
+				discord.PermissionReadMessageHistory |
+				discord.PermissionViewChannel) {
+				continue
+			}
+			err = s.ensureArchivedThreads(channel.ID)
+			if err != nil {
+				return fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
 			}
 			forums = append(forums, channel)
 		}
