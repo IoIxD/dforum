@@ -1,4 +1,4 @@
-module github.com/IoIxD/DFS
+module github.com/IoIxD/dforum
 
 go 1.19
 
