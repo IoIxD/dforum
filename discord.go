@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -18,22 +17,19 @@ func (s *server) ensureArchivedThreads(cid discord.ChannelID) error {
 	if _, ok := s.fetchedInactive[cid]; ok {
 		return nil
 	}
-	var allThreads []discord.Channel
-	threads, err := s.discord.PublicArchivedThreads(cid, discord.Timestamp{}, 0)
-	if err != nil {
-		return err
-	}
-	allThreads = append(allThreads, threads.Threads...)
-	for threads.More {
-		monthAgo := time.Unix(time.Now().Unix()-int64(time.Hour)*730, 0)
-		threads, err = s.discord.PublicArchivedThreads(cid, discord.Timestamp(monthAgo), 0)
+	var before discord.Timestamp
+	for {
+		threads, err := s.discord.PublicArchivedThreads(cid, before, 0)
 		if err != nil {
 			return err
 		}
-		allThreads = append(allThreads, threads.Threads...)
-	}
-	for _, t := range threads.Threads {
-		s.discord.Cabinet.ChannelStore.ChannelSet(&t, false)
+		for _, t := range threads.Threads {
+			s.discord.Cabinet.ChannelStore.ChannelSet(&t, false)
+		}
+		if !threads.More {
+			break
+		}
+		before = discord.Timestamp(threads.Threads[len(threads.Threads)-1].ID.Time())
 	}
 	s.fetchedInactive[cid] = struct{}{}
 	return nil
