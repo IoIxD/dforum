@@ -10,7 +10,7 @@ lazy_static! {
     static ref NOT_ALPHABET: Regex = Regex::new("[^A-Za-z0-9]").unwrap();
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 struct Tree {
     branches: HashMap<char, Vec<String>>
 }
@@ -65,7 +65,10 @@ async fn main() -> std::io::Result<()> {
     loop {
         match listener.accept() {
             Ok((socket, _addr)) =>  {
-                handle_client(socket, &tree);
+                let tree_clone = tree.clone();
+                tokio::spawn(async move {
+                    handle_client(socket, &tree_clone);
+                });
             },
             Err(e) => println!("couldn't get client: {e:?}"),
         }
