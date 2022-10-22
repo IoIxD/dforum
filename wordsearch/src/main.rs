@@ -91,14 +91,13 @@ fn handle_client(s: TcpStream, tree: &Tree) {
 
             for word in our_words {
                 // word formatted as the dictionary.txt likes
-                
-                let search = NOT_ALPHABET.replace_all(
-                    word.to_uppercase()
-                    .replace("'", "")
-                    .replace("\"", "")
-                    .as_str()
-                , "")
-                .to_string();
+                // special case: the dictionary.txt does not contain apostorphes.
+                if word.contains("'") || word.contains("’") {
+                    continue
+                }
+
+                let search = NOT_ALPHABET.replace_all(word.to_uppercase().as_str(), "").to_string();
+
                 if allowed_words.contains(&search) {continue}
 
                 // if it has any non-alphabet characters after that, it won't be in the dictionary.txt
@@ -108,7 +107,8 @@ fn handle_client(s: TcpStream, tree: &Tree) {
                     None => {}
                 }
                 
-                if search.len() <= 1 {continue;}
+                // we don't want to singular letters and two letter words are unlikely to be proper nouns anyways
+                if search.len() <= 2 {continue;}
 
                 let char = match search.chars().nth(0) {
                     Some(a) => a,
