@@ -136,12 +136,12 @@ func (s *server) writeSitemap(w io.Writer) error {
 					t.Type == discord.GuildPublicThread {
 					posts = append(posts, t)
 				}
-				for _, post := range posts {
-					if err = enc.Encode(URL{
-						Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
-					}); err != nil {
-						return err
-					}
+			}
+			for _, post := range posts {
+				if err = enc.Encode(URL{
+					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
+				}); err != nil {
+					return err
 				}
 			}
 		}
