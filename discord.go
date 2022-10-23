@@ -17,12 +17,19 @@ func (s *server) ensureArchivedThreads(cid discord.ChannelID) error {
 	if _, ok := s.fetchedInactive[cid]; ok {
 		return nil
 	}
-	threads, err := s.discord.PublicArchivedThreads(cid, discord.Timestamp{}, 0)
-	if err != nil {
-		return err
-	}
-	for _, t := range threads.Threads {
-		s.discord.Cabinet.ChannelStore.ChannelSet(&t, false)
+	var before discord.Timestamp
+	for {
+		threads, err := s.discord.PublicArchivedThreads(cid, before, 0)
+		if err != nil {
+			return err
+		}
+		for _, t := range threads.Threads {
+			s.discord.Cabinet.ChannelStore.ChannelSet(&t, false)
+		}
+		if !threads.More {
+			break
+		}
+		before = discord.Timestamp(threads.Threads[len(threads.Threads)-1].ID.Time())
 	}
 	s.fetchedInactive[cid] = struct{}{}
 	return nil
