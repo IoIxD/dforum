@@ -142,6 +142,7 @@ func (c *messageCache) Messages(id discord.ChannelID) ([]discord.Message, error)
 	if ch.msgs == nil {
 		msgs, err := c.Client.Messages(id, 0)
 		if err != nil {
+
 			return nil, err
 		}
 		for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
@@ -172,18 +173,6 @@ func newGuildCache(c *api.Client) *guildCache {
 	}
 }
 
-func (s *server) newGuildInCache(g discord.Guild) error {
-	channels, err := s.discord.Cabinet.Channels(g.ID)
-	if err != nil {
-		return err
-	}
-	for _, ch := range channels {
-		s.guildCache.Set(ch)
-	}
-	fmt.Printf("can now see %v\n", g.Name)
-	return nil
-}
-
 func (s *server) removeGuildFromMessageCache(gID discord.GuildID) error {
 	channels, err := s.guildCache.Channels(gID)
 	if err != nil {
@@ -192,12 +181,7 @@ func (s *server) removeGuildFromMessageCache(gID discord.GuildID) error {
 	for _, ch := range channels {
 		messages, err := s.messageCache.Messages(ch.ID)
 		if err != nil {
-			// we want to ignore this error because this one just means
-			// we tried to refill the message cache and failed, which is good.
-			if err.Error() != "Discord 403 error: Missing Access" {
-				return err
-			}
-
+			fmt.Println(err)
 		}
 		for _, m := range messages {
 			fmt.Printf("uncaching %v in %v\n", m.ID, ch.ID)
@@ -243,13 +227,11 @@ func (c *guildCache) Channels(id discord.GuildID) ([]discord.Channel, error) {
 	g.mut.Lock()
 	defer g.mut.Unlock()
 	if g.chans == nil {
-		fmt.Println("no channels found, populating")
 		chans, err := c.Client.Channels(id)
 		if err != nil {
 			return nil, err
 		}
 		g.chans = chans
-		fmt.Println(len(g.chans))
 	}
 	chans := make([]discord.Channel, len(g.chans))
 	copy(chans, g.chans)

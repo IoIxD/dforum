@@ -22,6 +22,15 @@ import (
 var embedfs embed.FS
 var tmpl *template.Template
 
+type config struct {
+	BotToken       string
+	ListenAddr     string
+	Resources      string
+	SiteURL        string
+	ServiceName    string
+	ServerHostedIn string
+}
+
 func main() {
 	cfgpath := flag.String("config", "config.toml", "path to config.toml")
 	flag.Parse()
@@ -29,12 +38,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Error while reading config:", file)
 	}
-	config := struct {
-		BotToken   string
-		ListenAddr string
-		Resources  string
-		SiteURL    string
-	}{ListenAddr: ":8084"}
+	config := config{ListenAddr: ":8084"}
 	if err := toml.Unmarshal(file, &config); err != nil {
 		log.Fatalln("Error while parsing config:", err)
 	}
@@ -73,7 +77,7 @@ func main() {
 	}
 	log.Printf("Connected to Discord as %s#%s (%s)\n", self.Username, self.Discriminator, self.ID)
 
-	server, err := newServer(state, fsys, config.SiteURL)
+	server, err := newServer(state, fsys, config)
 	if err != nil {
 		fmt.Println(err)
 		return

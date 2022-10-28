@@ -37,19 +37,24 @@ type server struct {
 	sitemapUpdated time.Time
 	sitemapMu      sync.Mutex
 
-	URL string
+	// configuration options
+	URL            string
+	ServiceName    string
+	ServerHostedIn string
 
 	buffers *sync.Pool
 }
 
-func newServer(st *state.State, fsys fs.FS, siteURL string) (*server, error) {
+func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
 	srv := &server{
 		fetchedInactive: make(map[discord.ChannelID]struct{}),
 		discord:         st,
 		messageCache:    newMessageCache(st.Client),
 		guildCache:      newGuildCache(st.Client),
 		buffers:         &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
-		URL:             siteURL,
+		URL:             config.SiteURL,
+		ServiceName:     config.ServiceName,
+		ServerHostedIn:  config.ServerHostedIn,
 	}
 	st.AddHandler(func(m *gateway.MessageCreateEvent) {
 		srv.messageCache.Set(m.Message, false)
@@ -94,6 +99,7 @@ func newServer(st *state.State, fsys fs.FS, siteURL string) (*server, error) {
 		})
 	})
 	getHead(r, "/privacy", srv.PrivacyPage)
+	getHead(r, "/tos", srv.TOSPage)
 	getHead(r, "/static/*", http.FileServer(http.FS(fsys)).ServeHTTP)
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		displayErr(w, http.StatusNotFound, nil)
@@ -437,4 +443,12 @@ func (s *server) postFromReq(w http.ResponseWriter, r *http.Request) (*discord.C
 
 func (s *server) PrivacyPage(w http.ResponseWriter, r *http.Request) {
 	s.executeTemplate(w, r, "privacy.gohtml", nil)
+}
+
+func (s *server) TOSPage(w http.ResponseWriter, r *http.Request) {
+	ctx := struct {
+		ServiceName    string
+		ServerHostedIn string
+	}{s.ServiceName, s.ServerHostedIn}
+	s.executeTemplate(w, r, "tos.gohtml", ctx)
 }
