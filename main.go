@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"flag"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"log"
@@ -72,7 +73,11 @@ func main() {
 	}
 	log.Printf("Connected to Discord as %s#%s (%s)\n", self.Username, self.Discriminator, self.ID)
 
-	server := newServer(state, fsys, config.SiteURL)
+	server, err := newServer(state, fsys, config.SiteURL)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	httpserver := &http.Server{
 		Addr:           config.ListenAddr,
 		Handler:        server,
