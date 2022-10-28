@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -153,87 +152,4 @@ func (c *messageCache) Messages(id discord.ChannelID) ([]discord.Message, error)
 	msgs := make([]discord.Message, len(ch.msgs))
 	copy(msgs, ch.msgs)
 	return msgs, nil
-}
-
-// GUILD CACHE
-
-type guildCache struct {
-	*api.Client
-	guilds sync.Map // discord.GuildID -> *guild
-}
-
-type guild struct {
-	mut   sync.Mutex
-	chans []discord.Channel
-}
-
-func newGuildCache(c *api.Client) *guildCache {
-	return &guildCache{
-		Client: c,
-	}
-}
-
-func (s *server) removeGuildFromMessageCache(gID discord.GuildID) error {
-	channels, err := s.guildCache.Channels(gID)
-	if err != nil {
-		return err
-	}
-	for _, ch := range channels {
-		messages, err := s.messageCache.Messages(ch.ID)
-		if err != nil {
-			fmt.Println(err)
-		}
-		for _, m := range messages {
-			fmt.Printf("uncaching %v in %v\n", m.ID, ch.ID)
-			s.messageCache.Remove(ch.ID, m.ID)
-		}
-	}
-	return nil
-}
-
-func (c *guildCache) Set(channel discord.Channel) {
-	v, ok := c.guilds.Load(channel.GuildID)
-	if !ok {
-		return
-	}
-	ch := v.(*guild)
-	ch.mut.Lock()
-	defer ch.mut.Unlock()
-	if ch.chans == nil {
-		return
-	}
-	ch.chans = append(ch.chans, channel)
-}
-
-func (c *guildCache) Remove(channel discord.Channel) {
-	v, ok := c.guilds.Load(channel.GuildID)
-	if !ok {
-		return
-	}
-	gu := v.(*guild)
-	gu.mut.Lock()
-	defer gu.mut.Unlock()
-	for i, ch := range gu.chans {
-		if ch.ID == channel.ID {
-			gu.chans = append(gu.chans[:i], gu.chans[i+1:]...)
-			return
-		}
-	}
-}
-
-func (c *guildCache) Channels(id discord.GuildID) ([]discord.Channel, error) {
-	v, _ := c.guilds.LoadOrStore(id, &guild{})
-	g := v.(*guild)
-	g.mut.Lock()
-	defer g.mut.Unlock()
-	if g.chans == nil {
-		chans, err := c.Client.Channels(id)
-		if err != nil {
-			return nil, err
-		}
-		g.chans = chans
-	}
-	chans := make([]discord.Channel, len(g.chans))
-	copy(chans, g.chans)
-	return chans, nil
 }

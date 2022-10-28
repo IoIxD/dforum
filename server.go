@@ -25,7 +25,6 @@ type server struct {
 
 	discord      *state.State
 	messageCache *messageCache
-	guildCache   *guildCache
 
 	fetchedInactiveMu sync.Mutex
 	fetchedInactive   map[discord.ChannelID]struct{}
@@ -50,7 +49,6 @@ func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
 		fetchedInactive: make(map[discord.ChannelID]struct{}),
 		discord:         st,
 		messageCache:    newMessageCache(st.Client),
-		guildCache:      newGuildCache(st.Client),
 		buffers:         &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
 		URL:             config.SiteURL,
 		ServiceName:     config.ServiceName,
@@ -64,25 +62,6 @@ func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
 	})
 	st.AddHandler(func(m *gateway.MessageDeleteEvent) {
 		srv.messageCache.Remove(m.ChannelID, m.ID)
-	})
-	st.AddHandler(func(g *gateway.GuildCreateEvent) {
-		_, err := srv.guildCache.Channels(g.ID)
-		if err != nil {
-			fmt.Println(err)
-		}
-	})
-	st.AddHandler(func(g *gateway.GuildDeleteEvent) {
-		err := srv.removeGuildFromMessageCache(g.ID)
-		if err != nil {
-			fmt.Println(err)
-		}
-	})
-	st.AddHandler(func(ch *gateway.ChannelCreateEvent) {
-		fmt.Printf("%v\n", ch.ID)
-		srv.guildCache.Set(ch.Channel)
-	})
-	st.AddHandler(func(ch *gateway.ChannelDeleteEvent) {
-		srv.guildCache.Remove(ch.Channel)
 	})
 	r := chi.NewRouter()
 	srv.r = r
