@@ -289,3 +289,58 @@ nav a {
         font-size: 1.5rem;
     }
 }
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #111;
+        color: #eee;
+    }
+    blockquote {
+        background: #060606;
+        border-left: 3px solid #333;
+    }
+
+    a {
+        color: #5de;
+    }
+
+    h1 a {
+        color: white;
+    }
+
+    nav {
+        background: #222;
+    }
+
+    nav li+li:before {
+        color: white;
+    }
+
+    nav a {
+        color: #ddd;
+        border-bottom: 2px dotted #ddd;
+    }
+
+    .post .author {
+        background: #222;
+    }
+
+    .post .badges li {
+        background: #444;
+    }
+    .post .timestamp {
+        color: #bbb;
+    }
+
+    .highlight {
+        background: #444!important;
+    }
+
+    .post-list .tag-list li {
+        background: #555;
+    }
+
+    .tabular-list > div {
+        background: #333;
+    }
+}
