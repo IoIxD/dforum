@@ -4,8 +4,8 @@ dforum is a Discord bot that can be invited to your server that will broadcast a
 
 <table>
   <tr>
-    <td><img src="https://user-images.githubusercontent.com/30945097/193661558-9e465ac9-c7e5-43b1-aea9-5b837d87314b.png"></td>
-    <td><img src="https://user-images.githubusercontent.com/30945097/193661643-4a2ad2c7-4419-4c7d-aa08-28964f937dee.png"></td>
+    <td><img src="https://user-images.githubusercontent.com/30945097/199125561-717e4a8e-1141-47fa-a0e4-f4814760f745.png"></td>
+    <td><img src="https://user-images.githubusercontent.com/30945097/199125612-9c8177cb-d0d3-4ac8-99d9-63d982aec3d8.png"></td>
   </tr>
  </table>
 
