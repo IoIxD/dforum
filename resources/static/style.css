@@ -220,9 +220,11 @@ nav a {
 }
 
 .tabular-list > div {
-    margin: 5px;
-    padding: 5px;
+    margin: 3.5px;
+    padding: 5px 10px;
     background: #ddd;
+    position: relative;
+    border-radius: 7.5px;
 }
 .tabular-list .label {
     display: none;
@@ -310,6 +312,7 @@ nav a {
 
     nav {
         background: #222;
+        border-radius: 5px;
     }
 
     nav li+li:before {
