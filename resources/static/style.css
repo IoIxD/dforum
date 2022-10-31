@@ -114,6 +114,7 @@ nav a {
     color: #222;
     text-decoration: none;
     border-bottom: 2px dotted #222;
+    border-radius: 5px;
 }
 
 .post {
@@ -312,7 +313,6 @@ nav a {
 
     nav {
         background: #222;
-        border-radius: 5px;
     }
 
     nav li+li:before {
