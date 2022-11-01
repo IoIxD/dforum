@@ -78,8 +78,8 @@ func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
 			})
 		})
 	})
-	getHead(r, "/privacy", srv.PrivacyPage)
-	getHead(r, "/tos", srv.TOSPage)
+	getHead(r, "/privacy", srv.Privacyafter)
+	getHead(r, "/tos", srv.TOSafter)
 	getHead(r, "/static/*", http.FileServer(http.FS(fsys)).ServeHTTP)
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		displayErr(w, http.StatusNotFound, nil)
@@ -269,9 +269,9 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 
 	// query parameters
 	tagFilterString := r.URL.Query().Get("tag-filter")
-	pageString := r.URL.Query().Get("page")
+	afterString := r.URL.Query().Get("after")
 	var tagFilter int
-	var page int
+	var after int
 	if tagFilterString != "" {
 		tagFilter, err = strconv.Atoi(tagFilterString)
 		if err != nil {
@@ -282,18 +282,18 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	} else {
 		tagFilter = -1
 	}
-	if pageString != "" {
-		page, err = strconv.Atoi(pageString)
+	if afterString != "" {
+		after, err = strconv.Atoi(afterString)
 		if err != nil {
 			displayErr(w, http.StatusInternalServerError,
-				fmt.Errorf("parsing page number: %s", err))
+				fmt.Errorf("parsing after number: %s", err))
 			return
 		}
 	} else {
-		page = 0
+		after = 0
 	}
 
-	// limit for pages that show up.
+	// limit for afters that show up.
 	const limit = 25
 
 	ctx := struct {
@@ -307,13 +307,18 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		ShowNext  bool
 		NextPage  int
 	}{Guild: guild, Forum: forum, Posts: nil, URL: s.URL,
-		TagFilter: tagFilter, NextPage: page + 1, PrevPage: page - 1}
+		TagFilter: tagFilter}
 	channels, err := s.discord.Cabinet.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching guild threads: %w", err))
 		return
 	}
+	// due to the way discord handles threads in forums (they're basically more
+	// channels), we need to go through the entire server and filter by
+	// parent channel.
+	// trying to limit how many results within this for loop leads to
+	// unstable results.
 	for _, thread := range channels {
 		if thread.ParentID != forum.ID ||
 			thread.Type != discord.GuildPublicThread {
@@ -339,29 +344,47 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if len(ctx.Posts) > limit*(page+1) {
-		ctx.Posts = ctx.Posts[limit*page : limit*(page+1)]
-		ctx.ShowNext = true
-		if page != 0 {
-			ctx.ShowPrev = true
-		}
-	} else {
-		if page != 0 {
-			ctx.Posts = ctx.Posts[limit*page:]
-			ctx.ShowNext = false
-			ctx.ShowPrev = true
-		} else {
-			ctx.ShowNext = false
-			ctx.ShowPrev = false
-		}
-	}
-
 	sort.SliceStable(ctx.Posts, func(i, j int) bool {
 		if ctx.Posts[i].Flags^ctx.Posts[j].Flags&discord.PinnedThread != 0 {
 			return ctx.Posts[i].Flags&discord.PinnedThread != 0
 		}
 		return ctx.Posts[i].LastMessageID.Time().After(ctx.Posts[j].LastMessageID.Time())
 	})
+
+	// so limit the posts right here instead.
+	postsFiltered := make([]Post, 0)
+	postNum := 0
+	show := false
+	lastIgnoredPost := 0
+	if after == 0 {
+		show = true
+	}
+	for i, post := range ctx.Posts {
+		if int(post.ID) == after {
+			show = true
+		}
+		if show {
+			if postNum >= limit {
+				ctx.NextPage = int(post.ID)
+				ctx.ShowNext = true
+				break
+			}
+			postsFiltered = append(postsFiltered, post)
+			postNum++
+		} else {
+			lastIgnoredPost = i + 1
+			continue
+		}
+	}
+	// if there's a post behind us, have a "previous" button for that
+	fmt.Println(lastIgnoredPost - limit)
+	if lastIgnoredPost-limit >= 0 {
+		post := ctx.Posts[lastIgnoredPost-limit]
+		ctx.ShowPrev = true
+		ctx.PrevPage = int(post.ID)
+	}
+	ctx.Posts = postsFiltered
+
 	s.executeTemplate(w, r, "forum.gohtml", ctx)
 }
 
@@ -483,11 +506,11 @@ func (s *server) postFromReq(w http.ResponseWriter, r *http.Request) (*discord.C
 	return post, true
 }
 
-func (s *server) PrivacyPage(w http.ResponseWriter, r *http.Request) {
+func (s *server) Privacyafter(w http.ResponseWriter, r *http.Request) {
 	s.executeTemplate(w, r, "privacy.gohtml", nil)
 }
 
-func (s *server) TOSPage(w http.ResponseWriter, r *http.Request) {
+func (s *server) TOSafter(w http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		ServiceName    string
 		ServerHostedIn string
