@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net/http"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -260,12 +261,26 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tagFilterString := r.URL.Query().Get("tag-filter")
+	var tagFilter int
+	if tagFilterString != "" {
+		tagFilter, err = strconv.Atoi(tagFilterString)
+		if err != nil {
+			displayErr(w, http.StatusInternalServerError,
+				fmt.Errorf("parsing tag filter: %s", err))
+			return
+		}
+	} else {
+		tagFilter = -1
+	}
+
 	ctx := struct {
-		Guild *discord.Guild
-		Forum *discord.Channel
-		Posts []Post
-		URL   string
-	}{guild, forum, nil, s.URL}
+		Guild     *discord.Guild
+		Forum     *discord.Channel
+		Posts     []Post
+		URL       string
+		TagFilter int
+	}{guild, forum, nil, s.URL, tagFilter}
 	channels, err := s.discord.Cabinet.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -277,6 +292,10 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 			thread.Type != discord.GuildPublicThread {
 			continue
 		}
+		show := true
+		if tagFilter != -1 {
+			show = false
+		}
 		post := Post{Channel: thread}
 		for _, tag := range thread.AppliedTags {
 			for _, availtag := range forum.AvailableTags {
@@ -284,8 +303,14 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 					post.Tags = append(post.Tags, availtag)
 				}
 			}
+			if tag == discord.TagID(tagFilter) {
+				show = true
+			}
 		}
-		ctx.Posts = append(ctx.Posts, post)
+		fmt.Println(show)
+		if show {
+			ctx.Posts = append(ctx.Posts, post)
+		}
 	}
 	sort.SliceStable(ctx.Posts, func(i, j int) bool {
 		if ctx.Posts[i].Flags^ctx.Posts[j].Flags&discord.PinnedThread != 0 {

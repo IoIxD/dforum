@@ -117,6 +117,26 @@ nav a {
     border-radius: 5px;
 }
 
+nav ul, nav .tags {
+    display:inline-block;
+}
+
+nav .tags {
+    float: right;
+    vertical-align: middle;
+}
+
+nav .tags select, nav .tags option, nav .tags input {
+    border: none;
+    background: #ccc;
+    padding: 4px;
+    outline: none;
+}
+
+nav .tags select {
+    border-radius: 7.5px;
+}
+
 .post {
     padding-top: 10px;
     overflow: visible;
@@ -345,5 +365,10 @@ nav a {
 
     .tabular-list > div {
         background: #333;
+    }
+
+    nav .tags select, nav .tags option, nav .tags input {
+        background: #333;
+        color: white!important;
     }
 }
