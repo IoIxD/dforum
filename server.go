@@ -271,7 +271,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	tagFilterString := r.URL.Query().Get("tag-filter")
 	afterString := r.URL.Query().Get("after")
 	var tagFilter int
-	var after int
+	var after discord.ChannelID
 	if tagFilterString != "" {
 		tagFilter, err = strconv.Atoi(tagFilterString)
 		if err != nil {
@@ -283,12 +283,13 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		tagFilter = -1
 	}
 	if afterString != "" {
-		after, err = strconv.Atoi(afterString)
+		after_, err := discord.ParseSnowflake(afterString)
 		if err != nil {
 			displayErr(w, http.StatusInternalServerError,
 				fmt.Errorf("parsing after number: %s", err))
 			return
 		}
+		after = discord.ChannelID(after_)
 	} else {
 		after = 0
 	}
@@ -360,7 +361,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		show = true
 	}
 	for i, post := range ctx.Posts {
-		if int(post.ID) == after {
+		if post.ID == after {
 			show = true
 		}
 		if show {
