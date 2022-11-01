@@ -6,6 +6,7 @@
 {{$title := print .Post.Name " - " .Guild.Name}}
 
 <nav>
+<img src='{{.Guild.IconURL}}?size=48'>
 <ul>
     <li><a href="/">dforum</a></a></li>
     <li><a href="/{{.Guild.ID}}">{{.Guild.Name}}</a></li>
