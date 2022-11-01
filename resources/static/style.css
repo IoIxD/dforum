@@ -227,7 +227,7 @@ nav .tags select {
     border-radius: 7.5px;
     cursor: pointer;
     display: inline-block;
-    color:black;
+    color:#111;
 }
 
 .prevbtn, .nextbtn {
@@ -413,5 +413,10 @@ nav .tags select {
     nav .tags select, nav .tags option, nav .tags input, .btn {
         background: #333;
         color: white!important;
+    }
+
+    .btn {
+        background: #333;
+        color: #eee;
     }
 }
