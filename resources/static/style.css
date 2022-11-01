@@ -70,16 +70,27 @@ form {
     flex-direction: column;
 }
 
+.reactions {
+    vertical-align: middle;
+}
 .reactions .reaction {
     display: inline-block;
-    height: 1em;
+    height: 1.25em;
     padding: 0.25em;
+    border-radius: 7.5px;;
     background: #ddd;
+    vertical-align: middle;
 }
 
 .reactions .reaction .emoji {
     width: 1em;
     height: 1em;
+    vertical-align: middle;
+}
+
+.post .content .reactions img {
+    display: inline-block;
+    vertical-align: middle;
 }
 
 h1 a {
@@ -207,9 +218,6 @@ nav .tags select {
     max-height: 40vh;
     height: auto;
     display: block;
-}
-.post .content .reactions img {
-    display: inline-block;
 }
 
 .btn {
