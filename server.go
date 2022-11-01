@@ -78,8 +78,8 @@ func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
 			})
 		})
 	})
-	getHead(r, "/privacy", srv.Privacyafter)
-	getHead(r, "/tos", srv.TOSafter)
+	getHead(r, "/privacy", srv.PrivacyPage)
+	getHead(r, "/tos", srv.TOSPage)
 	getHead(r, "/static/*", http.FileServer(http.FS(fsys)).ServeHTTP)
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		displayErr(w, http.StatusNotFound, nil)
@@ -293,7 +293,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		after = 0
 	}
 
-	// limit for afters that show up.
+	// limit for pages that show up.
 	const limit = 25
 
 	ctx := struct {
@@ -377,7 +377,6 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// if there's a post behind us, have a "previous" button for that
-	fmt.Println(lastIgnoredPost - limit)
 	if lastIgnoredPost-limit >= 0 {
 		post := ctx.Posts[lastIgnoredPost-limit]
 		ctx.ShowPrev = true
@@ -506,11 +505,11 @@ func (s *server) postFromReq(w http.ResponseWriter, r *http.Request) (*discord.C
 	return post, true
 }
 
-func (s *server) Privacyafter(w http.ResponseWriter, r *http.Request) {
+func (s *server) PrivacyPage(w http.ResponseWriter, r *http.Request) {
 	s.executeTemplate(w, r, "privacy.gohtml", nil)
 }
 
-func (s *server) TOSafter(w http.ResponseWriter, r *http.Request) {
+func (s *server) TOSPage(w http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		ServiceName    string
 		ServerHostedIn string
