@@ -261,8 +261,11 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// query parameters
 	tagFilterString := r.URL.Query().Get("tag-filter")
+	pageString := r.URL.Query().Get("page")
 	var tagFilter int
+	var page int
 	if tagFilterString != "" {
 		tagFilter, err = strconv.Atoi(tagFilterString)
 		if err != nil {
@@ -273,6 +276,19 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	} else {
 		tagFilter = -1
 	}
+	if pageString != "" {
+		page, err = strconv.Atoi(pageString)
+		if err != nil {
+			displayErr(w, http.StatusInternalServerError,
+				fmt.Errorf("parsing page number: %s", err))
+			return
+		}
+	} else {
+		page = 0
+	}
+
+	// limit for pages that show up.
+	const limit = 25
 
 	ctx := struct {
 		Guild     *discord.Guild
@@ -280,7 +296,12 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		Posts     []Post
 		URL       string
 		TagFilter int
-	}{guild, forum, nil, s.URL, tagFilter}
+		ShowPrev  bool
+		PrevPage  int
+		ShowNext  bool
+		NextPage  int
+	}{Guild: guild, Forum: forum, Posts: nil, URL: s.URL,
+		TagFilter: tagFilter, NextPage: page + 1, PrevPage: page - 1}
 	channels, err := s.discord.Cabinet.Channels(guild.ID)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -307,11 +328,25 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 				show = true
 			}
 		}
-		fmt.Println(show)
 		if show {
 			ctx.Posts = append(ctx.Posts, post)
 		}
 	}
+
+	if len(ctx.Posts) > limit*(page+1) {
+		ctx.Posts = ctx.Posts[limit*page : limit*(page+1)]
+		ctx.ShowNext = true
+	} else {
+		if page != 0 {
+			ctx.Posts = ctx.Posts[limit*page:]
+			ctx.ShowNext = false
+			ctx.ShowPrev = true
+		} else {
+			ctx.ShowNext = false
+			ctx.ShowPrev = false
+		}
+	}
+
 	sort.SliceStable(ctx.Posts, func(i, j int) bool {
 		if ctx.Posts[i].Flags^ctx.Posts[j].Flags&discord.PinnedThread != 0 {
 			return ctx.Posts[i].Flags&discord.PinnedThread != 0

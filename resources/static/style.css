@@ -126,7 +126,7 @@ nav .tags {
     vertical-align: middle;
 }
 
-nav .tags select, nav .tags option, nav .tags input {
+nav .tags select, nav .tags option, nav .tags input, .btn {
     border: none;
     background: #ccc;
     padding: 4px;
@@ -201,6 +201,18 @@ nav .tags select {
     max-height: 40vh;
     height: auto;
     display: block;
+}
+
+.prevbtn {
+    float: left;
+    font-size: 16px;
+    padding: 8px;
+}
+
+.nextbtn {
+    float: right;
+    font-size: 16px;
+    padding: 8px;
 }
 
 /* mobile */
@@ -367,7 +379,7 @@ nav .tags select {
         background: #333;
     }
 
-    nav .tags select, nav .tags option, nav .tags input {
+    nav .tags select, nav .tags option, nav .tags input, .btn {
         background: #333;
         color: white!important;
     }

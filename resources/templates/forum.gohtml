@@ -66,4 +66,19 @@
         </div>
     {{end}}
 </div>
+
+{{if .ShowPrev}}
+    <form method='get'>
+        <input type="hidden" name="page" value="{{.PrevPage}}">
+        <input class="prevbtn btn" type="submit" value="Previous">
+    </form>
+{{end}}
+
+{{if .ShowNext}}
+    <form method='get'>
+        <input type="hidden" name="page" value="{{.NextPage}}">
+        <input class="nextbtn btn" type="submit" value="Next">
+    </form>
+{{end}}
+
 {{ template "footer.gohtml" .}}
