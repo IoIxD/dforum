@@ -224,9 +224,10 @@ nav .tags select {
     border: none;
     background: #ccc;
     padding: 4px;
-    position:absolute;
     border-radius: 7.5px;
     cursor: pointer;
+    display: inline-block;
+    color:black;
 }
 
 .prevbtn, .nextbtn {
@@ -235,10 +236,10 @@ nav .tags select {
 }
 
 .prevbtn {
-    left: 0;
+    float:left;
 }
 .nextbtn {
-    right: 0;
+    float:right;
 }
 
 /* mobile */
