@@ -42,6 +42,10 @@ img[src*=SPOILER_]:hover {
     transition: 0.2s linear;
 }
 
+form {
+    display: inline-block;
+}
+
 .row {
     display:block;
     margin: 5px 0;
@@ -203,16 +207,18 @@ nav .tags select {
     display: block;
 }
 
-.prevbtn {
-    float: left;
+.prevbtn, .nextbtn {
     font-size: 16px;
     padding: 8px;
+    position:absolute;
+}
+
+.prevbtn {
+    left: 0;
 }
 
 .nextbtn {
-    float: right;
-    font-size: 16px;
-    padding: 8px;
+    right: 0;
 }
 
 /* mobile */
@@ -223,6 +229,7 @@ nav .tags select {
 
 .tabular-list {
     display: grid;
+    position: relative;
 }
 
 .forum-list {

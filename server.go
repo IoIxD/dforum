@@ -336,6 +336,9 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	if len(ctx.Posts) > limit*(page+1) {
 		ctx.Posts = ctx.Posts[limit*page : limit*(page+1)]
 		ctx.ShowNext = true
+		if page != 0 {
+			ctx.ShowPrev = true
+		}
 	} else {
 		if page != 0 {
 			ctx.Posts = ctx.Posts[limit*page:]
