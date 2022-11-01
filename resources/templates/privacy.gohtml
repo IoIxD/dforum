@@ -1,12 +1,24 @@
 {{template "header.gohtml"}}
 <h1>Privacy Policy</h1>
-<h4>Effective September 20th, 2022</h4>
+<h4>Effective October 27th, 2022</h4>
 
-<p>All content here is taken from Discord, so for that content you should seek our Discord's policy. Your data is currently not stored.</p>
+<h3>Messages</h3>
 
-<p>The sitemap, however, is cached for six hours. People will be able to find the message IDs of previously served messages this way, but they will not be able to use the service to get the contents of these messages.</p>
+<p>All content here is taken from Discord. Messages are cached internally until Discord deems the contents invalid, either by:
+
+<ul>
+    <li>Updating of the message.</li>
+    <li>Deleting of the message.</li>
+    <li>The bot leaving or being kicked from the server that the message is in.</li>
+    <li>Any miscellaneous situation in which the bot no longer has access to the message.</li>
+</ul>
+
+Messages are only cached into memory. This is subject to change.
+
+</p>
+
+<h3>Sitemap</h3>
+<p>The sitemap is cached for six hours. People will be able to find the message IDs of previously served messages this way, but they will not be able to use the service to get the contents of these messages. The bot leaving your server does not invalidate the cache until it is regenerated, unless the program is restarted in between those six hours.</p>
 
 <p>Updates to this policy will be announced in the Discord server linked on the main page.</p>
-
-<small>We plan to implement a caching system at some point in the future, which will require a change to this policy. Only text and some post information will be cached when this happens.</small>
 {{template "footer.gohtml"}}

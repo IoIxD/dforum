@@ -78,6 +78,8 @@ func (s *server) ensureMembers(ctx context.Context, post discord.Channel, msgs [
 	}
 }
 
+// MESSAGE CACHE
+
 type messageCache struct {
 	*api.Client
 	channels sync.Map // discord.ChannelID -> *channel
@@ -139,6 +141,7 @@ func (c *messageCache) Messages(id discord.ChannelID) ([]discord.Message, error)
 	if ch.msgs == nil {
 		msgs, err := c.Client.Messages(id, 0)
 		if err != nil {
+
 			return nil, err
 		}
 		for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
