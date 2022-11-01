@@ -91,7 +91,6 @@ nav {
     padding: 15px;
     margin: 10px 0;
     background: #ddd;
-    vertical-align: middle;
 }
 
 nav ul {
@@ -208,6 +207,9 @@ nav .tags select {
     max-height: 40vh;
     height: auto;
     display: block;
+}
+.post .content .reactions img {
+    display: inline-block;
 }
 
 .btn {
