@@ -5,10 +5,10 @@
 
 {{$title := print .Post.Name " - " .Guild.Name}}
 
+<span class='logo'><a href="/">dforum</a></span>
 <nav>
 <img src='{{.Guild.IconURL}}?size=48'>
 <ul>
-    <li><a href="/">dforum</a></a></li>
     <li><a href="/{{.Guild.ID}}">{{.Guild.Name}}</a></li>
     <li><a href="/{{.Guild.ID}}/{{.Forum.ID}}">{{.Forum.Name}}</a></li>
     <li>{{.Post.Name}}</li>
