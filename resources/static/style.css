@@ -299,6 +299,9 @@ nav .tags select {
 }
 
 @media (max-width: 600px) {
+    body {
+        padding: 1rem;
+    }
     nav li {
         display: block;
     }
