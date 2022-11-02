@@ -300,7 +300,7 @@ nav .tags select {
 
 @media (max-width: 600px) {
     body {
-        padding: 1rem;
+        padding: 0.5rem;
     }
     nav li {
         display: block;
