@@ -24,6 +24,13 @@ type MessageGroup struct {
 	Messages []Message
 }
 
+// same thing but with a smaller footprint, so it doesn't
+// require the s.Message function. Good for the sitemap.
+type MessageGroupSmall struct {
+	Author
+	Messages []discord.Message
+}
+
 type Message struct {
 	discord.Message
 	Role             string

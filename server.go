@@ -22,7 +22,7 @@ import (
 )
 
 // limit for items that show up in post and message listing.
-const limit = 25
+const paginationLimit = 25
 
 type server struct {
 	r *chi.Mux
@@ -365,7 +365,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 			show = true
 		}
 		if show {
-			if postNum >= limit {
+			if postNum >= paginationLimit {
 				ctx.NextPage = int(post.ID)
 				ctx.ShowNext = true
 				break
@@ -378,8 +378,8 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// if there's a post behind us, have a "previous" button for that
-	if lastIgnoredPost-limit >= 0 {
-		post := ctx.Posts[lastIgnoredPost-limit]
+	if lastIgnoredPost-paginationLimit >= 0 {
+		post := ctx.Posts[lastIgnoredPost-paginationLimit]
 		ctx.ShowPrev = true
 		ctx.PrevPage = int(post.ID)
 	}
@@ -452,14 +452,14 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	for _, m := range msgs {
 		m.GuildID = guild.ID
 		msg := s.message(m)
-		if i >= limit-1 {
+		if i >= paginationLimit-1 {
 			ctx.ShowNext = true
 			ctx.NextPage = msg.ID
 			break
 		}
 		if msg.ID == after {
 			show = true
-			prev := (n - limit) + 1
+			prev := (n - paginationLimit) + 1
 			if prev >= 0 {
 				ctx.ShowPrev = true
 				ctx.PrevPage = ids[prev]

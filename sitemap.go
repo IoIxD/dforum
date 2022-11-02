@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"time"
 
@@ -108,20 +109,6 @@ func (s *server) writeSitemap(w io.Writer) error {
 			if channel.Type != discord.GuildForum {
 				continue
 			}
-			me, _ := s.discord.Cabinet.Me()
-			perms, err := s.discord.Permissions(channel.ID, me.ID)
-			if err != nil {
-				return fmt.Errorf("fetching channel permissions for %s: %s", channel.Name, err)
-			}
-			if !perms.Has(0 |
-				discord.PermissionReadMessageHistory |
-				discord.PermissionViewChannel) {
-				continue
-			}
-			err = s.ensureArchivedThreads(channel.ID)
-			if err != nil {
-				return fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
-			}
 			forums = append(forums, channel)
 		}
 		for _, forum := range forums {
@@ -138,10 +125,30 @@ func (s *server) writeSitemap(w io.Writer) error {
 				}
 			}
 			for _, post := range posts {
+				// Posts are usually truncated to a certain limit.
+				// if this page exceeds said limit, we need to put the
+				// paginated version in too.
+				msgs, err := s.messageCache.Messages(post.ID)
+				if err != nil {
+					return err
+				}
+
+				chunks := math.Ceil(float64(len(msgs) / paginationLimit))
+
+				loc := fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID)
 				if err = enc.Encode(URL{
-					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
+					Location: loc,
 				}); err != nil {
 					return err
+				}
+				for i := 0; float64(i) < chunks; i++ {
+					loc := fmt.Sprintf("%s/%s/%s/%s?after=%s", s.URL, guild.ID, forum.ID, post.ID, msgs[i].ID)
+					if err = enc.Encode(URL{
+						Location: loc,
+					}); err != nil {
+						return err
+					}
+					fmt.Println(loc)
 				}
 			}
 		}
