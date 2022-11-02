@@ -21,6 +21,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// limit for items that show up in post and message listing.
+const limit = 25
+
 type server struct {
 	r *chi.Mux
 
@@ -294,9 +297,6 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		after = 0
 	}
 
-	// limit for pages that show up.
-	const limit = 25
-
 	ctx := struct {
 		Guild     *discord.Guild
 		Forum     *discord.Channel
@@ -406,8 +406,26 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		Forum         *discord.Channel
 		Post          *discord.Channel
 		MessageGroups []MessageGroup
+		ShowNext      bool
+		NextPage      discord.MessageID
+		ShowPrev      bool
+		PrevPage      discord.MessageID
 		URL           string
-	}{guild, forum, post, nil, s.URL}
+	}{Guild: guild, Forum: forum, Post: post, URL: s.URL}
+
+	afterString := r.URL.Query().Get("after")
+	var after discord.MessageID
+	if afterString != "" {
+		after_, err := discord.ParseSnowflake(afterString)
+		if err != nil {
+			displayErr(w, http.StatusInternalServerError,
+				fmt.Errorf("parsing after number: %s", err))
+			return
+		}
+		after = discord.MessageID(after_)
+	} else {
+		after = 0
+	}
 
 	msgs, err := s.messageCache.Messages(post.ID)
 	if err != nil {
@@ -425,16 +443,39 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var msgrps []MessageGroup
-	i := -1
+	i, n := -1, -1
+	ids := make([]discord.MessageID, 0)
+	show := true
+	if after != 0 {
+		show = false
+	}
 	for _, m := range msgs {
 		m.GuildID = guild.ID
 		msg := s.message(m)
-		if i == -1 || msgrps[i].Author.ID != m.Author.ID {
-			auth := s.author(m)
-			msgrps = append(msgrps, MessageGroup{auth, []Message{msg}})
-			i++
+		if i >= limit-1 {
+			ctx.ShowNext = true
+			ctx.NextPage = msg.ID
+			break
+		}
+		if msg.ID == after {
+			show = true
+			prev := (n - limit) + 1
+			if prev >= 0 {
+				ctx.ShowPrev = true
+				ctx.PrevPage = ids[prev]
+			}
+		}
+		if show {
+			if i < len(msgrps) || msgrps[i].Author.ID != m.Author.ID {
+				auth := s.author(m)
+				msgrps = append(msgrps, MessageGroup{auth, []Message{msg}})
+				i++
+			} else {
+				msgrps[i].Messages = append(msgrps[i].Messages, msg)
+			}
 		} else {
-			msgrps[i].Messages = append(msgrps[i].Messages, msg)
+			n++
+			ids = append(ids, msg.ID)
 		}
 	}
 	ctx.MessageGroups = msgrps

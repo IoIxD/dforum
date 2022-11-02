@@ -1,0 +1,18 @@
+{{define "navbuttons"}}
+<span class='nav_buttons'>
+{{if .ShowPrev}}
+    {{template "prev_post" .PrevPage}}
+{{end}}
+{{if .ShowNext}}
+    {{template "next_post" .NextPage}}
+{{end}}
+</span>
+{{end}}
+
+{{define "prev_post"}}
+    <a class="prevbtn btn" href="?after={{.}}">Previous</a><br>
+{{end}}
+
+{{define "next_post"}}
+    <a class="nextbtn btn" href="?after={{.}}">Next</a><br>
+{{end}}

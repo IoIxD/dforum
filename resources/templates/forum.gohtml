@@ -30,6 +30,8 @@
 </form>
 </nav>
 
+{{ template "navbuttons" . }}
+
 <div class='tabular-list post-list'>
     <div class='header'>Title</div>
     <div class='header highlight'>Last Active</div>
@@ -69,11 +71,6 @@
 
 </div>
 
-{{if .ShowPrev}}
-    <a class="prevbtn btn" href="?after={{.PrevPage}}">Previous</a>
-{{end}}
+{{ template "navbuttons" . }}
 
-{{if .ShowNext}}
-    <a class="nextbtn btn" href="?after={{.NextPage}}">Next</a>
-{{end}}
 {{ template "footer.gohtml" .}}

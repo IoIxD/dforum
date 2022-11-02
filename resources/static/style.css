@@ -237,20 +237,29 @@ nav .tags select {
     padding: 4px;
     border-radius: 7.5px;
     cursor: pointer;
-    display: inline-block;
     color:#111;
+}
+
+.nav_buttons {
+    display:block;
+    position: relative;
+    height: 3em;
 }
 
 .prevbtn, .nextbtn {
     font-size: 16px;
     padding: 8px;
+    margin: 4px;
+    position: absolute;
 }
 
 .prevbtn {
-    float:left;
+    left: 0;
+    top: 0;
 }
 .nextbtn {
-    float:right;
+    right: 0;
+    top: 0;
 }
 
 /* mobile */
