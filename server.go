@@ -449,6 +449,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	if after != 0 {
 		show = false
 	}
+
 	for _, m := range msgs {
 		m.GuildID = guild.ID
 		msg := s.message(m)
@@ -466,7 +467,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if show {
-			if i < len(msgrps) || msgrps[i].Author.ID != m.Author.ID {
+			if i == -1 || msgrps[i].Author.ID != m.Author.ID {
 				auth := s.author(m)
 				msgrps = append(msgrps, MessageGroup{auth, []Message{msg}})
 				i++
