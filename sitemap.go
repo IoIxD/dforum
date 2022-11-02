@@ -135,20 +135,17 @@ func (s *server) writeSitemap(w io.Writer) error {
 
 				chunks := math.Ceil(float64(len(msgs) / paginationLimit))
 
-				loc := fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID)
 				if err = enc.Encode(URL{
-					Location: loc,
+					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
 				}); err != nil {
 					return err
 				}
-				for i := 0; float64(i) < chunks; i++ {
-					loc := fmt.Sprintf("%s/%s/%s/%s?after=%s", s.URL, guild.ID, forum.ID, post.ID, msgs[i].ID)
+				for i := 1; float64(i) < chunks; i++ {
 					if err = enc.Encode(URL{
-						Location: loc,
+						Location: fmt.Sprintf("%s/%s/%s/%s?after=%s", s.URL, guild.ID, forum.ID, post.ID, msgs[i*paginationLimit].ID),
 					}); err != nil {
 						return err
 					}
-					fmt.Println(loc)
 				}
 			}
 		}
