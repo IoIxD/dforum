@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"hash/crc32"
@@ -433,9 +432,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 			fmt.Errorf("fetching post's messages: %w", err))
 		return
 	}
-	timeout, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-	err = s.ensureMembers(timeout, *post, msgs)
-	cancel()
+	err = s.ensureMembers(r.Context(), *post, msgs)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching post's members: %w", err))
