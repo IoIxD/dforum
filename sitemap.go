@@ -128,7 +128,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 				// Posts are usually truncated to a certain limit.
 				// if this page exceeds said limit, we need to put the
 				// paginated version in too.
-				msgs, err := s.messageCache.Messages(post.ID)
+				msgs, err := s.messageCaches.Messages(post.ID)
 				if err != nil {
 					return err
 				}
