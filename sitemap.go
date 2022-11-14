@@ -128,12 +128,16 @@ func (s *server) writeSitemap(w io.Writer) error {
 				// Posts are usually truncated to a certain limit.
 				// if this page exceeds said limit, we need to put the
 				// paginated version in too.
-				msgs, err := s.messageCache.Messages(post.ID)
-				if err != nil {
-					return err
+				var msgs []discord.Message
+				var err error
+				chunks := 0.0
+				if post.MessageCount > paginationLimit {
+					msgs, err = s.messageCache.Messages(post.ID)
+					if err != nil {
+						return err
+					}
+					chunks = math.Ceil(float64(len(msgs) / paginationLimit))
 				}
-
-				chunks := math.Ceil(float64(len(msgs) / paginationLimit))
 
 				if err = enc.Encode(URL{
 					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
