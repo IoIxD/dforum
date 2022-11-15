@@ -69,6 +69,8 @@ func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
 	r := chi.NewRouter()
 	srv.r = r
 	r.Use(middleware.Logger)
+	r.Mount("/debug", middleware.Profiler())
+
 	getHead(r, `/sitemap.xml`, srv.getSitemap)
 	getHead(r, "/", srv.getIndex)
 	r.Route("/{guildID:\\d+}", func(r chi.Router) {
@@ -83,6 +85,7 @@ func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
 	getHead(r, "/privacy", srv.PrivacyPage)
 	getHead(r, "/tos", srv.TOSPage)
 	getHead(r, "/static/*", http.FileServer(http.FS(fsys)).ServeHTTP)
+
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		displayErr(w, http.StatusNotFound, nil)
 	}))
