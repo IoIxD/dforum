@@ -153,7 +153,6 @@ func (s *server) writeSitemap(w io.Writer) error {
 					}
 				case <-waitCh2:
 					{
-						break
 					}
 				}
 				fmt.Println("wg2 done")
@@ -227,7 +226,6 @@ func (s *server) writeSitemap(w io.Writer) error {
 						}
 					case <-waitCh3:
 						{
-							break
 						}
 					}
 					fmt.Println("wg3 done")
@@ -245,7 +243,6 @@ func (s *server) writeSitemap(w io.Writer) error {
 		}
 	case <-waitCh1:
 		{
-			break
 		}
 	}
 	for _, url := range urls.urls {
