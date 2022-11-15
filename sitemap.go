@@ -187,28 +187,35 @@ func (s *server) writeSitemap(w io.Writer) error {
 							// level 3
 							go func(post discord.Channel) {
 								defer wg3.Done()
-								// Posts are usually truncated to a certain limit.
-								// if this page exceeds said limit, we need to put the
-								// paginated version in too.
-								var msgs []discord.Message
-								var err error
-								chunks := 0.0
-								if post.MessageCount > paginationLimit {
-									chunks = float64(post.MessageCount / paginationLimit)
-									msgs, err = s.messageCache.Messages(post.ID)
-									if err != nil {
-										errCh3 <- err
-										return
-									}
-								}
+								/*
+									CURRENTLY DISABLED: code that would let us put ?after urls in the sitemap.
+									no longer works and its way too slow to do even with goroutines
+
+									// Posts are usually truncated to a certain limit.
+									// if this page exceeds said limit, we need to put the
+									// paginated version in too.
+									var msgs []discord.Message
+									var err error
+									chunks := 0.0
+									if post.MessageCount > paginationLimit {
+										chunks = math.Floor(float64(post.MessageCount) / float64(paginationLimit))
+										msgs, err, _, _ = s.messageCache.Messages(post.ID, 0)
+										if err != nil {
+											errCh3 <- err
+											return
+										}
+									}*/
 								urls.Push(URL{
 									Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
 								})
-								for i := 1; float64(i) < chunks; i++ {
-									urls.Push(URL{
-										Location: fmt.Sprintf("%s/%s/%s/%s?after=%s", s.URL, guild.ID, forum.ID, post.ID, msgs[i*paginationLimit].ID),
-									})
-								}
+								/*
+									for i := 1; float64(i) < chunks; i++ {
+										if i*paginationLimit <= len(msgs) {
+											urls.Push(URL{
+												Location: fmt.Sprintf("%s/%s/%s/%s?cur=a%s", s.URL, guild.ID, forum.ID, post.ID, msgs[i*paginationLimit].ID),
+											})
+										}
+									}*/
 							}(post)
 						}
 						wg3.Wait()

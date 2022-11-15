@@ -9,7 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 )
 
-const SemaphoreLimit = 1024
+const SemaphoreLimit = 128
 
 type Semaphore struct {
 	semaCh chan struct{}
@@ -169,11 +169,7 @@ func (c *messageCache) Remove(chid discord.ChannelID, id discord.MessageID) {
 	}
 }
 
-func (c *messageCache) Messages(id discord.ChannelID) ([]discord.Message, error) {
-	return c.MessagesWithLimit(id, 0)
-}
-
-func (c *messageCache) MessagesWithLimit(id discord.ChannelID, limit uint) ([]discord.Message, error) {
+func (c *messageCache) MessagesBetween(id discord.ChannelID, before, after, limit uint) ([]discord.Message, error, discord.MessageID, discord.MessageID) {
 	v, _ := c.channels.LoadOrStore(id, &channel{})
 	ch := v.(*channel)
 	if ch.sem == nil {
@@ -182,16 +178,64 @@ func (c *messageCache) MessagesWithLimit(id discord.ChannelID, limit uint) ([]di
 	ch.sem.AcquireRead()
 	defer ch.sem.Release()
 	if ch.msgs == nil {
-		msgs, err := c.Client.Messages(id, limit)
+		msgs, err := c.Client.Messages(id, 0)
 		if err != nil {
-			return nil, err
+			return nil, err, 0, 0
 		}
 		for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
 			msgs[i], msgs[j] = msgs[j], msgs[i]
 		}
 		ch.msgs = msgs
 	}
-	msgs := make([]discord.Message, len(ch.msgs))
-	copy(msgs, ch.msgs)
-	return msgs, nil
+	beforeInt := 0
+	afterInt := 0
+	var prevID, nextID discord.MessageID
+
+	for i, msg := range ch.msgs {
+		if uint(msg.ID) == before {
+			beforeInt = i
+		}
+		if uint(msg.ID) == after {
+			afterInt = i
+		}
+
+	}
+
+	// if there's nothing before us or before is unset
+	if beforeInt == 0 {
+		// set the before int to the max
+		beforeInt = int(limit + uint(afterInt))
+		if beforeInt > len(ch.msgs) {
+			beforeInt = len(ch.msgs)
+		}
+	}
+	if beforeInt+1 < len(ch.msgs) {
+		nextID = ch.msgs[beforeInt+1].ID
+	}
+	if afterInt-1 > 0 {
+		afterInt -= 1
+		prevID = ch.msgs[afterInt].ID
+	}
+
+	// if after is unset
+	if afterInt == 0 {
+		afterInt = beforeInt - int(limit)
+	}
+	if afterInt < 0 {
+		afterInt = 0
+	}
+
+	msgs := make([]discord.Message, len(ch.msgs[afterInt:beforeInt]))
+	copy(msgs, ch.msgs[afterInt:beforeInt])
+	return msgs, nil, prevID, nextID
+}
+
+func (c *messageCache) Messages(id discord.ChannelID, limit uint) ([]discord.Message, error, discord.MessageID, discord.MessageID) {
+	return c.MessagesBetween(id, 0, 0, limit)
+}
+func (c *messageCache) MessagesBefore(id discord.ChannelID, before, limit uint) ([]discord.Message, error, discord.MessageID, discord.MessageID) {
+	return c.MessagesBetween(id, before, 0, limit)
+}
+func (c *messageCache) MessagesAfter(id discord.ChannelID, after, limit uint) ([]discord.Message, error, discord.MessageID, discord.MessageID) {
+	return c.MessagesBetween(id, 0, after, limit)
 }

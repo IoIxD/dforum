@@ -406,7 +406,12 @@ func (s *server) getForumSync(w http.ResponseWriter, r *http.Request) {
 	s.executeTemplate(w, r, "forum.gohtml", ctx)
 }
 
+// we want to limit the number of threads that can be dedicated to the post page.
+var postPageSemaphore = NewSemaphore(100)
+
 func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
+	postPageSemaphore.AcquireRead()
+	defer postPageSemaphore.Release()
 	ch := make(chan int)
 	go func() {
 		s.getPostSync(w, r)
@@ -432,33 +437,35 @@ func (s *server) getPostSync(w http.ResponseWriter, r *http.Request) {
 		Forum         *discord.Channel
 		Post          *discord.Channel
 		MessageGroups []MessageGroup
-		ShowNext      bool
-		NextPage      discord.MessageID
-		ShowPrev      bool
-		PrevPage      discord.MessageID
+		NextID        discord.MessageID
+		PrevID        discord.MessageID
 		URL           string
 	}{Guild: guild, Forum: forum, Post: post, URL: s.URL}
 
-	afterString := r.URL.Query().Get("after")
-	var after discord.MessageID
-	if afterString != "" {
-		after_, err := discord.ParseSnowflake(afterString)
-		if err != nil {
-			displayErr(w, http.StatusInternalServerError,
-				fmt.Errorf("parsing after number: %s", err))
-			return
-		}
-		after = discord.MessageID(after_)
+	cur := 0
+	asc := true
+	curstr := r.URL.Query().Get("cur")
+	if len(curstr) >= 2 {
+		asc = curstr[0] == 'a'
+		cur, _ = strconv.Atoi(curstr[1:])
 	} else {
-		after = 0
+		asc = true
+		cur = 0
 	}
 
-	msgs, err := s.messageCache.Messages(post.ID)
+	var msgs []discord.Message
+	var err error
+	if asc {
+		msgs, err, ctx.PrevID, ctx.NextID = s.messageCache.MessagesAfter(post.ID, uint(cur), paginationLimit)
+	} else {
+		msgs, err, ctx.PrevID, ctx.NextID = s.messageCache.MessagesBefore(post.ID, uint(cur), paginationLimit)
+	}
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching post's messages: %w", err))
 		return
 	}
+
 	err = s.ensureMembers(r.Context(), *post, msgs)
 	if err != nil {
 		displayErr(w, http.StatusInternalServerError,
@@ -467,40 +474,16 @@ func (s *server) getPostSync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var msgrps []MessageGroup
-	i, n := -1, -1
-	ids := make([]discord.MessageID, 0)
-	show := true
-	if after != 0 {
-		show = false
-	}
-
+	i := -1
 	for _, m := range msgs {
 		m.GuildID = guild.ID
 		msg := s.message(m)
-		if i >= paginationLimit-1 {
-			ctx.ShowNext = true
-			ctx.NextPage = msg.ID
-			break
-		}
-		if msg.ID == after {
-			show = true
-			prev := (n - paginationLimit) + 1
-			if prev >= 0 {
-				ctx.ShowPrev = true
-				ctx.PrevPage = ids[prev]
-			}
-		}
-		if show {
-			if i == -1 || msgrps[i].Author.ID != m.Author.ID {
-				auth := s.author(m)
-				msgrps = append(msgrps, MessageGroup{auth, []Message{msg}})
-				i++
-			} else {
-				msgrps[i].Messages = append(msgrps[i].Messages, msg)
-			}
+		if i == -1 || msgrps[i].Author.ID != m.Author.ID {
+			auth := s.author(m)
+			msgrps = append(msgrps, MessageGroup{auth, []Message{msg}})
+			i++
 		} else {
-			n++
-			ids = append(ids, msg.ID)
+			msgrps[i].Messages = append(msgrps[i].Messages, msg)
 		}
 	}
 	ctx.MessageGroups = msgrps

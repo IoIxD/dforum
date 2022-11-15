@@ -15,8 +15,6 @@
 </ul>
 </nav>
 
-{{ template "navbuttons" . }}
-
 <h2>{{.Post.Name}}</h2>
 
 {{if gt (len .MessageGroups) 0}}
@@ -39,6 +37,15 @@
 <meta property="og:url" content="{{.URL}}/{{.Guild.ID}}/{{.Forum.ID}}/{{.Post.ID}}">
 <meta property="og:image" content="{{$image}}">
 
+<span class='nav_buttons'>
+{{if .PrevID }}
+<a class="prevbtn btn" href="?cur=d{{.PrevID}}">Previous</a><br>
+{{end}}
+{{if .NextID }}
+<a class="nextbtn btn" href="?cur=a{{.NextID}}">Next</a><br>
+{{end}}
+</span>
+
 <div>
 {{range .MessageGroups}}
 {{$firstMsg := (index .Messages 0).Message}}
@@ -57,11 +64,11 @@
         {{if eq $op .Author.ID}}
             <li>OP</li>
         {{end}}
-        <span class='timestamp'>{{$firstMsg.ID.Time.Format "Jan 2 2006 3:04 PM"}}</time></span>
+        <span class='timestamp'>{{$firstMsg.ID.Time.Format "Jan 2 2006 3:04 PM"}}</span>
         </ul>
     </div>
     <div class='content'>
-    <span class='timestamp'>Posted {{$firstMsg.ID.Time.Format "January 2, 2006 3:04 PM"}}</time></span>
+    <span class='timestamp'>Posted {{$firstMsg.ID.Time.Format "January 2, 2006 3:04 PM"}} - {{.ID}}</span>
     {{range .Messages}}
         {{.RenderedContent}}
         {{range .MediaPreviews}}
@@ -92,5 +99,12 @@
 </div>
 {{end}}
 </div>
-{{ template "navbuttons" . }}
+<span class='nav_buttons'>
+{{if .PrevID }}
+<a class="prevbtn btn" href="?cur=d{{.PrevID}}">Previous</a><br>
+{{end}}
+{{if .NextID }}
+<a class="nextbtn btn" href="?cur=a{{.NextID}}">Next</a><br>
+{{end}}
+</span>
 {{ template "footer.gohtml" .}}
