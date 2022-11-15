@@ -87,10 +87,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 		return err
 	}
 	guilds, _ := s.discord.Cabinet.Guilds()
-	// we abuse goroutines to get around the fact that we're about to do some expensive work;
-	// we can just change the solution entirely but this would get messy when we inevitably switch
-	// to a sql database for caching.
-	urls := NewURLMap()
+	forumURLs, chanURLs, postURLs := NewURLMap(), NewURLMap(), NewURLMap()
 	var wg1 sync.WaitGroup
 	wg1.Add(len(guilds))
 	errCh1 := make(chan error)
@@ -101,7 +98,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 			// level 1
 			go func(guild discord.Guild) {
 				defer wg1.Done()
-				urls.Push(URL{
+				forumURLs.Push(URL{
 					Location: fmt.Sprintf("%s/%s", s.URL, guild.ID),
 				})
 
@@ -164,7 +161,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 					forums = append(forums, channel)
 				}
 				for _, forum := range forums {
-					urls.Push(URL{
+					chanURLs.Push(URL{
 						Location: fmt.Sprintf("%s/%s/%s", s.URL, guild.ID, forum.ID),
 					})
 					var posts []discord.Channel
@@ -187,35 +184,9 @@ func (s *server) writeSitemap(w io.Writer) error {
 							// level 3
 							go func(post discord.Channel) {
 								defer wg3.Done()
-								/*
-									CURRENTLY DISABLED: code that would let us put ?after urls in the sitemap.
-									no longer works and its way too slow to do even with goroutines
-
-									// Posts are usually truncated to a certain limit.
-									// if this page exceeds said limit, we need to put the
-									// paginated version in too.
-									var msgs []discord.Message
-									var err error
-									chunks := 0.0
-									if post.MessageCount > paginationLimit {
-										chunks = math.Floor(float64(post.MessageCount) / float64(paginationLimit))
-										msgs, err, _, _ = s.messageCache.Messages(post.ID, 0)
-										if err != nil {
-											errCh3 <- err
-											return
-										}
-									}*/
-								urls.Push(URL{
+								postURLs.Push(URL{
 									Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
 								})
-								/*
-									for i := 1; float64(i) < chunks; i++ {
-										if i*paginationLimit <= len(msgs) {
-											urls.Push(URL{
-												Location: fmt.Sprintf("%s/%s/%s/%s?cur=a%s", s.URL, guild.ID, forum.ID, post.ID, msgs[i*paginationLimit].ID),
-											})
-										}
-									}*/
 							}(post)
 						}
 						wg3.Wait()
@@ -248,7 +219,17 @@ func (s *server) writeSitemap(w io.Writer) error {
 		{
 		}
 	}
-	for _, url := range urls.urls {
+	for _, url := range forumURLs.urls {
+		if err = enc.Encode(url); err != nil {
+			return err
+		}
+	}
+	for _, url := range chanURLs.urls {
+		if err = enc.Encode(url); err != nil {
+			return err
+		}
+	}
+	for _, url := range postURLs.urls {
 		if err = enc.Encode(url); err != nil {
 			return err
 		}

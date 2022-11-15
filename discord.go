@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -113,8 +114,9 @@ type messageCache struct {
 }
 
 type channel struct {
-	msgs []discord.Message
-	sem  *Semaphore
+	msgs   []discord.Message
+	sem    *Semaphore
+	hasAll bool
 }
 
 func newMessageCache(c *api.Client) *messageCache {
@@ -178,7 +180,7 @@ func (c *messageCache) MessagesBetween(id discord.ChannelID, before, after, limi
 	ch.sem.AcquireRead()
 	defer ch.sem.Release()
 	if ch.msgs == nil {
-		msgs, err := c.Client.Messages(id, 0)
+		msgs, err := c.Client.MessagesAfter(id, discord.MessageID(after), paginationLimit+1)
 		if err != nil {
 			return nil, err, 0, 0
 		}
@@ -186,7 +188,25 @@ func (c *messageCache) MessagesBetween(id discord.ChannelID, before, after, limi
 			msgs[i], msgs[j] = msgs[j], msgs[i]
 		}
 		ch.msgs = msgs
+		// start a little goroutine in the back to cache the rest of the messages
+		go func() {
+			time.Sleep(1 * time.Second)
+			msgs, _ := c.Client.Messages(id, 0)
+			for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
+				msgs[i], msgs[j] = msgs[j], msgs[i]
+			}
+			ch.msgs = msgs
+			ch.hasAll = true
+		}()
 	}
+	// if either before or after are set we need to wait for all the messages to be cached
+	//fmt.Println(before, ", ", after)
+	if before != 0 && after != 0 {
+		for !ch.hasAll {
+			time.Sleep(250 * time.Millisecond)
+		}
+	}
+
 	beforeInt := 0
 	afterInt := 0
 	var prevID, nextID discord.MessageID
