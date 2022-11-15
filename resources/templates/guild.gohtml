@@ -5,7 +5,9 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{.URL}}/{{.Guild.ID}}">
 
+<span class='logo'><a href="/">dforum</a></span>
 <nav>
+<img src='{{.Guild.IconURL}}?size=48'>
 <ul>
     <li>{{.Guild.Name}}</li>
 </ul>
@@ -13,7 +15,7 @@
 <div class='tabular-list forum-list'>
     <div class='header'>Forum</div>
     <div class='header'>Last Active</div>
-    <div class='header ighlight'>Posts</div>
+    <div class='header highlight'>Posts</div>
     <div class='header'>Messages</div>
 {{range .ForumChannels}}
         <div>

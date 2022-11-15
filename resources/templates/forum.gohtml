@@ -6,12 +6,31 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="http://{{.URL}}//{{.Guild.ID}}/{{.Forum.ID}}">
 
+<span class='logo'><a href="/">dforum</a></span>
 <nav>
+<img src='{{.Guild.IconURL}}?size=48'>
 <ul>
     <li><a href="/{{.Guild.ID}}">{{.Guild.Name}}</a></li>
     <li>{{.Forum.Name}}</li>
 </ul>
+<form class='tags' method='get'>
+    <b>Filter by </b>
+    <select name='tag-filter'>
+        <option value="">All</option>
+        {{range .Forum.AvailableTags}}
+            {{$selected := false}}
+            {{if eq .ID $.TagFilter}}
+                {{$selected = true}}
+            {{end}}
+
+            <option value="{{.ID}}" {{if $selected}}selected{{end}}>{{.Name}}</option>
+        {{end}}
+    </select>
+    <input type="submit" value=">">
+</form>
 </nav>
+
+{{ template "navbuttons" . }}
 
 <div class='tabular-list post-list'>
     <div class='header'>Title</div>
@@ -49,5 +68,9 @@
             <span class='label'> messages</span>
         </div>
     {{end}}
+
 </div>
+
+{{ template "navbuttons" . }}
+
 {{ template "footer.gohtml" .}}

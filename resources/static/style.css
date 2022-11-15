@@ -42,6 +42,10 @@ img[src*=SPOILER_]:hover {
     transition: 0.2s linear;
 }
 
+form {
+    display: inline-block;
+}
+
 .row {
     display:block;
     margin: 5px 0;
@@ -66,20 +70,42 @@ img[src*=SPOILER_]:hover {
     flex-direction: column;
 }
 
+.reactions {
+    vertical-align: middle;
+}
 .reactions .reaction {
     display: inline-block;
-    height: 1em;
+    height: 1.25em;
     padding: 0.25em;
+    border-radius: 7.5px;;
     background: #ddd;
+    vertical-align: middle;
 }
 
 .reactions .reaction .emoji {
     width: 1em;
     height: 1em;
+    vertical-align: middle;
+}
+
+.post .content .reactions img {
+    display: inline-block;
+    vertical-align: middle;
 }
 
 h1 a {
     color: black;
+}
+
+.logo {
+    padding: 1em;
+}
+
+.logo a  {
+    color: black;
+    font-weight: bold;
+    border-bottom: 2px dotted #222;
+    font-size: 24px;
 }
 
 nav {
@@ -87,6 +113,7 @@ nav {
     padding: 15px;
     margin: 10px 0;
     background: #ddd;
+    position: relative;
 }
 
 nav ul {
@@ -95,8 +122,9 @@ nav ul {
     padding: 0;
 }
 
-nav li {
+nav * {
     display: inline;
+    vertical-align: middle;
 }
 
 nav li:last-child {
@@ -114,6 +142,27 @@ nav a {
     color: #222;
     text-decoration: none;
     border-bottom: 2px dotted #222;
+    border-radius: 5px;
+}
+
+nav img {
+    border-radius: 50%;
+    margin-right: 1em;
+}
+nav .tags {
+    float: right;
+    vertical-align: middle;
+}
+
+nav .tags select, nav .tags option, nav .tags input, .btn {
+    border: none;
+    background: #ccc;
+    padding: 4px;
+    outline: none;
+}
+
+nav .tags select {
+    border-radius: 7.5px;
 }
 
 .post {
@@ -182,6 +231,37 @@ nav a {
     display: block;
 }
 
+.btn {
+    border: none;
+    background: #ccc;
+    padding: 4px;
+    border-radius: 7.5px;
+    cursor: pointer;
+    color:#111;
+}
+
+.nav_buttons {
+    display:block;
+    position: relative;
+    height: 3em;
+}
+
+.prevbtn, .nextbtn {
+    font-size: 16px;
+    padding: 8px;
+    margin: 4px;
+    position: absolute;
+}
+
+.prevbtn {
+    left: 0;
+    top: 0;
+}
+.nextbtn {
+    right: 0;
+    top: 0;
+}
+
 /* mobile */
 
 .highlight {
@@ -190,6 +270,7 @@ nav a {
 
 .tabular-list {
     display: grid;
+    position: relative;
 }
 
 .forum-list {
@@ -220,9 +301,11 @@ nav a {
 }
 
 .tabular-list > div {
-    margin: 5px;
-    padding: 5px;
+    margin: 3.5px;
+    padding: 5px 10px;
     background: #ddd;
+    position: relative;
+    border-radius: 7.5px;
 }
 .tabular-list .label {
     display: none;
@@ -236,8 +319,18 @@ nav a {
 }
 
 @media (max-width: 600px) {
+    body {
+        padding: 0.5rem;
+    }
     nav li {
         display: block;
+    }
+    nav img, nav ul {
+        display: inline-block;
+    }
+    nav .tags {
+        display: block;
+        float: none;
     }
     .post {
         flex-direction: column;
@@ -287,5 +380,77 @@ nav a {
     }
     .highlight {
         font-size: 1.5rem;
+    }
+    .icon {
+        filter: invert();
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .logo a {
+        color: white;
+        border-bottom: 2px dotted #ddd;
+    }
+    body {
+        background: #111;
+        color: #eee;
+    }
+    blockquote {
+        background: #060606;
+        border-left: 3px solid #333;
+    }
+
+    a {
+        color: #5de;
+    }
+
+    h1 a {
+        color: white;
+    }
+
+    nav {
+        background: #222;
+    }
+
+    nav li+li:before {
+        color: white;
+    }
+
+    nav a {
+        color: #ddd;
+        border-bottom: 2px dotted #ddd;
+    }
+
+    .post .author {
+        background: #222;
+    }
+
+    .post .badges li {
+        background: #444;
+    }
+    .post .timestamp {
+        color: #bbb;
+    }
+
+    .highlight {
+        background: #444!important;
+    }
+
+    .post-list .tag-list li {
+        background: #555;
+    }
+
+    .tabular-list > div {
+        background: #333;
+    }
+
+    nav .tags select, nav .tags option, nav .tags input, .btn {
+        background: #333;
+        color: white!important;
+    }
+
+    .btn {
+        background: #333;
+        color: #eee;
     }
 }
