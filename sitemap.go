@@ -95,8 +95,8 @@ func (s *server) writeSitemap(w io.Writer) error {
 	var wg1 sync.WaitGroup
 	wg1.Add(len(guilds))
 	fmt.Println("wg1 made")
-	var errCh1 chan error
-	waitCh1 := make(chan struct{})
+	errCh1 := make(chan error)
+	waitCh1 := make(chan bool)
 	// level 1 wrapper
 	go func() {
 		for _, guild := range guilds {
@@ -117,8 +117,8 @@ func (s *server) writeSitemap(w io.Writer) error {
 				fmt.Println("wg2 made")
 				// we first need to go through these channels and ensure their messages
 				// are cached
-				var errCh2 chan error
-				waitCh2 := make(chan struct{})
+				errCh2 := make(chan error)
+				waitCh2 := make(chan bool)
 				// level 2 wrapper
 				go func() {
 					// level 2
@@ -144,7 +144,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 						}(channel)
 					}
 					wg2.Wait()
-					close(waitCh2)
+					waitCh2 <- true
 				}()
 				select {
 				case e := <-errCh2:
@@ -184,8 +184,8 @@ func (s *server) writeSitemap(w io.Writer) error {
 					var wg3 sync.WaitGroup
 					wg3.Add(len(posts))
 					fmt.Println("wg3 made")
-					var errCh3 chan error
-					waitCh3 := make(chan struct{})
+					errCh3 := make(chan error)
+					waitCh3 := make(chan bool)
 					// level 3 wrapper
 					go func() {
 						for _, post := range posts {
@@ -217,7 +217,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 							}(post)
 						}
 						wg3.Wait()
-						close(waitCh3)
+						waitCh3 <- true
 					}()
 
 					select {
@@ -232,7 +232,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 					}
 					fmt.Println("wg3 done")
 				}
-				close(waitCh1)
+				waitCh1 <- true
 			}(guild)
 		}
 		wg1.Wait()
