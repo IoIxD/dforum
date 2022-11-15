@@ -143,10 +143,14 @@ func (c *messageCache) Remove(chid discord.ChannelID, id discord.MessageID) {
 }
 
 func (c *messageCache) Messages(id discord.ChannelID) ([]discord.Message, error) {
+	return c.MessagesWithLimit(id, 0)
+}
+
+func (c *messageCache) MessagesWithLimit(id discord.ChannelID, limit uint) ([]discord.Message, error) {
 	v, _ := c.channels.LoadOrStore(id, &channel{})
 	ch := v.(*channel)
 	if ch.msgs == nil {
-		msgs, err := c.Client.Messages(id, 0)
+		msgs, err := c.Client.Messages(id, limit)
 		if err != nil {
 			return nil, err
 		}

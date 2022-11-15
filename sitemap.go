@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -60,6 +61,23 @@ var XMLURLSetStart = xml.StartElement{
 
 var XMLURLSetEnd = XMLURLSetStart.End()
 
+type URLMap struct {
+	urls map[int]URL
+	sync.RWMutex
+}
+
+func NewURLMap() URLMap {
+	return URLMap{
+		urls: make(map[int]URL),
+	}
+}
+
+func (u *URLMap) Push(url URL) {
+	u.Lock()
+	defer u.Unlock()
+	u.urls[len(u.urls)] = url
+}
+
 func (s *server) writeSitemap(w io.Writer) error {
 	if _, err := io.WriteString(w, xml.Header); err != nil {
 		return err
@@ -70,88 +88,169 @@ func (s *server) writeSitemap(w io.Writer) error {
 		return err
 	}
 	guilds, _ := s.discord.Cabinet.Guilds()
-	for _, guild := range guilds {
-		if err = enc.Encode(URL{
-			Location: fmt.Sprintf("%s/%s", s.URL, guild.ID),
-		}); err != nil {
-			return err
-		}
+	// we abuse goroutines to get around the fact that we're about to do some expensive work;
+	// we can just change the solution entirely but this would get messy when we inevitably switch
+	// to a sql database for caching.
+	urls := NewURLMap()
+	var wg1 sync.WaitGroup
+	wg1.Add(len(guilds))
+	fmt.Println("wg1 made")
+	var errCh1 chan error
+	waitCh1 := make(chan struct{})
+	// level 1 wrapper
+	go func() {
+		for _, guild := range guilds {
+			// level 1
+			go func(guild discord.Guild) {
+				defer wg1.Done()
+				urls.Push(URL{
+					Location: fmt.Sprintf("%s/%s", s.URL, guild.ID),
+				})
 
-		channels, err := s.discord.Cabinet.Channels(guild.ID)
-		if err != nil {
-			return err
-		}
-		// we first need to go through these channels and ensure their messages
-		// are cached
-		for _, channel := range channels {
-			if channel.Type != discord.GuildForum {
-				continue
-			}
-			me, _ := s.discord.Cabinet.Me()
-			perms, err := s.discord.Permissions(channel.ID, me.ID)
-			if err != nil {
-				return fmt.Errorf("fetching channel permissions for %s: %s", channel.Name, err)
-			}
-			if !perms.Has(0 |
-				discord.PermissionReadMessageHistory |
-				discord.PermissionViewChannel) {
-				continue
-			}
-			err = s.ensureArchivedThreads(channel.ID)
-			if err != nil {
-				return fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
-			}
-		}
-		// and then go through it again.
-		channels, _ = s.discord.Cabinet.Channels(guild.ID)
-		var forums []discord.Channel
-		for _, channel := range channels {
-			if channel.Type != discord.GuildForum {
-				continue
-			}
-			forums = append(forums, channel)
-		}
-		for _, forum := range forums {
-			if err = enc.Encode(URL{
-				Location: fmt.Sprintf("%s/%s/%s", s.URL, guild.ID, forum.ID),
-			}); err != nil {
-				return err
-			}
-			var posts []discord.Channel
-			for _, t := range channels {
-				if t.ParentID == forum.ID &&
-					t.Type == discord.GuildPublicThread {
-					posts = append(posts, t)
-				}
-			}
-			for _, post := range posts {
-				// Posts are usually truncated to a certain limit.
-				// if this page exceeds said limit, we need to put the
-				// paginated version in too.
-				var msgs []discord.Message
-				var err error
-				chunks := 0.0
-				if post.MessageCount > paginationLimit {
-					msgs, err = s.messageCache.Messages(post.ID)
-					if err != nil {
-						return err
-					}
-					chunks = math.Ceil(float64(len(msgs) / paginationLimit))
+				channels, err := s.discord.Cabinet.Channels(guild.ID)
+				if err != nil {
+					errCh1 <- err
 				}
 
-				if err = enc.Encode(URL{
-					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
-				}); err != nil {
-					return err
-				}
-				for i := 1; float64(i) < chunks; i++ {
-					if err = enc.Encode(URL{
-						Location: fmt.Sprintf("%s/%s/%s/%s?after=%s", s.URL, guild.ID, forum.ID, post.ID, msgs[i*paginationLimit].ID),
-					}); err != nil {
-						return err
+				var wg2 sync.WaitGroup
+				wg2.Add(len(channels))
+				fmt.Println("wg2 made")
+				// we first need to go through these channels and ensure their messages
+				// are cached
+				var errCh2 chan error
+				waitCh2 := make(chan struct{})
+				// level 2 wrapper
+				go func() {
+					// level 2
+					for _, channel := range channels {
+						go func(channel discord.Channel) {
+							defer wg2.Done()
+							if channel.Type != discord.GuildForum {
+								return
+							}
+							me, _ := s.discord.Cabinet.Me()
+							perms, err := s.discord.Permissions(channel.ID, me.ID)
+							if err != nil {
+								errCh2 <- fmt.Errorf("fetching channel permissions for %s: %s", channel.Name, err)
+							}
+							if !perms.Has(0 |
+								discord.PermissionReadMessageHistory |
+								discord.PermissionViewChannel) {
+							}
+							err = s.ensureArchivedThreads(channel.ID)
+							if err != nil {
+								errCh2 <- fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
+							}
+						}(channel)
+					}
+					wg2.Wait()
+					close(waitCh2)
+				}()
+				select {
+				case e := <-errCh2:
+					{
+						errCh1 <- e
+					}
+				case <-waitCh2:
+					{
+						break
 					}
 				}
-			}
+				fmt.Println("wg2 done")
+
+				// and then go through it again.
+				channels, _ = s.discord.Cabinet.Channels(guild.ID)
+				var forums []discord.Channel
+				for _, channel := range channels {
+					if channel.Type != discord.GuildForum {
+						continue
+					}
+					forums = append(forums, channel)
+				}
+				for _, forum := range forums {
+					urls.Push(URL{
+						Location: fmt.Sprintf("%s/%s/%s", s.URL, guild.ID, forum.ID),
+					})
+					var posts []discord.Channel
+					for _, t := range channels {
+						if t.ParentID == forum.ID &&
+							t.Type == discord.GuildPublicThread {
+							posts = append(posts, t)
+						}
+					}
+					if len(posts) < 1 {
+						continue
+					}
+					var wg3 sync.WaitGroup
+					wg3.Add(len(posts))
+					fmt.Println("wg3 made")
+					var errCh3 chan error
+					waitCh3 := make(chan struct{})
+					// level 3 wrapper
+					go func() {
+						for _, post := range posts {
+							// level 3
+							go func(post discord.Channel) {
+								defer wg3.Done()
+								// Posts are usually truncated to a certain limit.
+								// if this page exceeds said limit, we need to put the
+								// paginated version in too.
+								var msgs []discord.Message
+								var err error
+								chunks := 0.0
+								if post.MessageCount > paginationLimit {
+									chunks = math.Ceil(float64(post.MessageCount / paginationLimit))
+									msgs, err = s.messageCache.Messages(post.ID)
+									if err != nil {
+										errCh3 <- err
+										return
+									}
+								}
+								urls.Push(URL{
+									Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
+								})
+								for i := 1; float64(i) < chunks; i++ {
+									urls.Push(URL{
+										Location: fmt.Sprintf("%s/%s/%s/%s?after=%s", s.URL, guild.ID, forum.ID, post.ID, msgs[i*paginationLimit].ID),
+									})
+								}
+							}(post)
+						}
+						wg3.Wait()
+						close(waitCh3)
+					}()
+
+					select {
+					case e := <-errCh3:
+						{
+							errCh2 <- e
+						}
+					case <-waitCh3:
+						{
+							break
+						}
+					}
+					fmt.Println("wg3 done")
+				}
+				close(waitCh1)
+			}(guild)
+		}
+		wg1.Wait()
+		fmt.Println("wg1 done")
+	}()
+	select {
+	case e := <-errCh1:
+		{
+			return e
+		}
+	case <-waitCh1:
+		{
+			break
+		}
+	}
+	for _, url := range urls.urls {
+		if err = enc.Encode(url); err != nil {
+			return err
 		}
 	}
 	if err = enc.EncodeToken(XMLURLSetEnd); err != nil {
