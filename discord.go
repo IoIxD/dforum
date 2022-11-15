@@ -9,7 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 )
 
-const SemaphoreLimit = 50
+const SemaphoreLimit = 1024
 
 type Semaphore struct {
 	semaCh chan struct{}
