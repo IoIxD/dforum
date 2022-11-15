@@ -94,7 +94,6 @@ func (s *server) writeSitemap(w io.Writer) error {
 	urls := NewURLMap()
 	var wg1 sync.WaitGroup
 	wg1.Add(len(guilds))
-	fmt.Println("wg1 made")
 	errCh1 := make(chan error)
 	waitCh1 := make(chan bool)
 	// level 1 wrapper
@@ -114,7 +113,6 @@ func (s *server) writeSitemap(w io.Writer) error {
 
 				var wg2 sync.WaitGroup
 				wg2.Add(len(channels))
-				fmt.Println("wg2 made")
 				// we first need to go through these channels and ensure their messages
 				// are cached
 				errCh2 := make(chan error)
@@ -139,7 +137,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 							}
 							err = s.ensureArchivedThreads(channel.ID)
 							if err != nil {
-								errCh2 <- fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
+								//errCh2 <- fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
 							}
 						}(channel)
 					}
@@ -155,7 +153,6 @@ func (s *server) writeSitemap(w io.Writer) error {
 					{
 					}
 				}
-				fmt.Println("wg2 done")
 
 				// and then go through it again.
 				channels, _ = s.discord.Cabinet.Channels(guild.ID)
@@ -182,7 +179,6 @@ func (s *server) writeSitemap(w io.Writer) error {
 					}
 					var wg3 sync.WaitGroup
 					wg3.Add(len(posts))
-					fmt.Println("wg3 made")
 					errCh3 := make(chan error)
 					waitCh3 := make(chan bool)
 					// level 3 wrapper
@@ -228,13 +224,13 @@ func (s *server) writeSitemap(w io.Writer) error {
 						{
 						}
 					}
-					fmt.Println("wg3 done")
+
 				}
-				waitCh1 <- true
+
 			}(guild)
 		}
 		wg1.Wait()
-		fmt.Println("wg1 done")
+		waitCh1 <- true
 	}()
 	select {
 	case e := <-errCh1:
