@@ -167,6 +167,14 @@ type ForumChannel struct {
 }
 
 func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
+	ch := make(chan int)
+	go func() {
+		s.getGuildSync(w, r)
+		ch <- 1
+	}()
+	<-ch
+}
+func (s *server) getGuildSync(w http.ResponseWriter, r *http.Request) {
 	guild, ok := s.guildFromReq(w, r)
 	if !ok {
 		return
@@ -254,6 +262,14 @@ func (p Post) IsPinned() bool {
 }
 
 func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
+	ch := make(chan int)
+	go func() {
+		s.getForumSync(w, r)
+		ch <- 1
+	}()
+	<-ch
+}
+func (s *server) getForumSync(w http.ResponseWriter, r *http.Request) {
 	guild, ok := s.guildFromReq(w, r)
 	if !ok {
 		return
@@ -388,6 +404,14 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
+	ch := make(chan int)
+	go func() {
+		s.getPostSync(w, r)
+		ch <- 1
+	}()
+	<-ch
+}
+func (s *server) getPostSync(w http.ResponseWriter, r *http.Request) {
 	guild, ok := s.guildFromReq(w, r)
 	if !ok {
 		return
