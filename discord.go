@@ -9,6 +9,33 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 )
 
+const SemaphoreLimit = 50
+
+type Semaphore struct {
+	semaCh chan struct{}
+}
+
+func NewSemaphore(maxReq int) *Semaphore {
+	return &Semaphore{
+		semaCh: make(chan struct{}, maxReq),
+	}
+}
+
+func (s *Semaphore) AcquireRead() {
+	s.semaCh <- struct{}{}
+}
+
+func (s *Semaphore) AcquireWrite() {
+	for len(s.semaCh) > 0 {
+		<-s.semaCh
+	}
+	s.semaCh <- struct{}{}
+}
+
+func (s *Semaphore) Release() {
+	<-s.semaCh
+}
+
 // ensureArchivedThreads ensures that all archived threads in the channel are in
 // the cache.
 func (s *server) ensureArchivedThreads(cid discord.ChannelID) error {
@@ -80,20 +107,14 @@ func (s *server) ensureMembers(ctx context.Context, post discord.Channel, msgs [
 
 // MESSAGE CACHE
 
-const cachesLimit = 50
-
-type messageCaches struct {
-	caches []messageCache
-}
-
 type messageCache struct {
 	*api.Client
 	channels sync.Map // discord.ChannelID -> *channel
 }
 
 type channel struct {
-	mut  sync.Mutex
 	msgs []discord.Message
+	sem  *Semaphore
 }
 
 func newMessageCache(c *api.Client) *messageCache {
@@ -109,8 +130,11 @@ func (c *messageCache) Set(m discord.Message, update bool) {
 			return
 		}
 		ch := v.(*channel)
-		ch.mut.Lock()
-		defer ch.mut.Unlock()
+		if ch.sem == nil {
+			ch.sem = NewSemaphore(SemaphoreLimit)
+		}
+		ch.sem.AcquireWrite()
+		defer ch.sem.Release()
 		if ch.msgs == nil {
 			return
 		}
@@ -132,8 +156,11 @@ func (c *messageCache) Remove(chid discord.ChannelID, id discord.MessageID) {
 		return
 	}
 	ch := v.(*channel)
-	ch.mut.Lock()
-	defer ch.mut.Unlock()
+	if ch.sem == nil {
+		ch.sem = NewSemaphore(SemaphoreLimit)
+	}
+	ch.sem.AcquireWrite()
+	defer ch.sem.Release()
 	for i, msg := range ch.msgs {
 		if msg.ID == id {
 			ch.msgs = append(ch.msgs[:i], ch.msgs[i+1:]...)
@@ -149,6 +176,11 @@ func (c *messageCache) Messages(id discord.ChannelID) ([]discord.Message, error)
 func (c *messageCache) MessagesWithLimit(id discord.ChannelID, limit uint) ([]discord.Message, error) {
 	v, _ := c.channels.LoadOrStore(id, &channel{})
 	ch := v.(*channel)
+	if ch.sem == nil {
+		ch.sem = NewSemaphore(SemaphoreLimit)
+	}
+	ch.sem.AcquireRead()
+	defer ch.sem.Release()
 	if ch.msgs == nil {
 		msgs, err := c.Client.Messages(id, limit)
 		if err != nil {

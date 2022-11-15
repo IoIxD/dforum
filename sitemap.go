@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"sync"
 	"time"
@@ -134,10 +133,11 @@ func (s *server) writeSitemap(w io.Writer) error {
 							if !perms.Has(0 |
 								discord.PermissionReadMessageHistory |
 								discord.PermissionViewChannel) {
+								return
 							}
 							err = s.ensureArchivedThreads(channel.ID)
 							if err != nil {
-								//errCh2 <- fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
+								errCh2 <- fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
 							}
 						}(channel)
 					}
@@ -194,7 +194,7 @@ func (s *server) writeSitemap(w io.Writer) error {
 								var err error
 								chunks := 0.0
 								if post.MessageCount > paginationLimit {
-									chunks = math.Ceil(float64(post.MessageCount / paginationLimit))
+									chunks = float64(post.MessageCount / paginationLimit)
 									msgs, err = s.messageCache.Messages(post.ID)
 									if err != nil {
 										errCh3 <- err
