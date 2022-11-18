@@ -38,11 +38,11 @@
 <meta property="og:image" content="{{$image}}">
 
 <span class='nav_buttons'>
-{{if .PrevID }}
-<a class="prevbtn btn" href="?cur=d{{.PrevID}}">Previous</a><br>
+{{if .Prev }}
+<a class="prevbtn btn" href="?cur=d{{.Prev}}">Previous</a><br>
 {{end}}
-{{if .NextID }}
-<a class="nextbtn btn" href="?cur=a{{.NextID}}">Next</a><br>
+{{if .Next }}
+<a class="nextbtn btn" href="?cur=a{{.Next}}">Next</a><br>
 {{end}}
 </span>
 
@@ -100,11 +100,11 @@
 {{end}}
 </div>
 <span class='nav_buttons'>
-{{if .PrevID }}
-<a class="prevbtn btn" href="?cur=d{{.PrevID}}">Previous</a><br>
+{{if .Prev }}
+<a class="prevbtn btn" href="?cur=d{{.Prev}}">Previous</a><br>
 {{end}}
-{{if .NextID }}
-<a class="nextbtn btn" href="?cur=a{{.NextID}}">Next</a><br>
+{{if .Next }}
+<a class="nextbtn btn" href="?cur=a{{.Next}}">Next</a><br>
 {{end}}
 </span>
 {{ template "footer.gohtml" .}}

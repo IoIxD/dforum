@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"hash/crc32"
@@ -20,9 +21,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
-
-// limit for items that show up in post and message listing.
-const paginationLimit = 25
 
 type server struct {
 	r *chi.Mux
@@ -73,14 +71,13 @@ func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
 	r := chi.NewRouter()
 	srv.r = r
 	r.Use(middleware.Logger)
-	r.Mount("/debug", middleware.Profiler())
-
 	getHead(r, `/sitemap.xml`, srv.getSitemap)
 	getHead(r, "/", srv.getIndex)
 	r.Route("/{guildID:\\d+}", func(r chi.Router) {
 		getHead(r, "/", srv.getGuild)
 		r.Route("/{forumID:\\d+}", func(r chi.Router) {
 			getHead(r, "/", srv.getForum)
+			getHead(r, "/page/{page:\\d+}", srv.getForum)
 			r.Route("/{postID:\\d+}", func(r chi.Router) {
 				getHead(r, "/", srv.getPost)
 			})
@@ -89,7 +86,6 @@ func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
 	getHead(r, "/privacy", srv.PrivacyPage)
 	getHead(r, "/tos", srv.TOSPage)
 	getHead(r, "/static/*", http.FileServer(http.FS(fsys)).ServeHTTP)
-
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		srv.displayErr(w, http.StatusNotFound, nil)
 	}))
@@ -174,14 +170,6 @@ type ForumChannel struct {
 }
 
 func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
-	ch := make(chan int)
-	go func() {
-		s.getGuildSync(w, r)
-		ch <- 1
-	}()
-	<-ch
-}
-func (s *server) getGuildSync(w http.ResponseWriter, r *http.Request) {
 	guild, ok := s.guildFromReq(w, r)
 	if !ok {
 		return
@@ -269,14 +257,6 @@ func (p Post) IsPinned() bool {
 }
 
 func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
-	ch := make(chan int)
-	go func() {
-		s.getForumSync(w, r)
-		ch <- 1
-	}()
-	<-ch
-}
-func (s *server) getForumSync(w http.ResponseWriter, r *http.Request) {
 	guild, ok := s.guildFromReq(w, r)
 	if !ok {
 		return
@@ -292,64 +272,27 @@ func (s *server) getForumSync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// query parameters
-	tagFilterString := r.URL.Query().Get("tag-filter")
-	afterString := r.URL.Query().Get("after")
-	var tagFilter int
-	var after discord.ChannelID
-	if tagFilterString != "" {
-		tagFilter, err = strconv.Atoi(tagFilterString)
-		if err != nil {
-			s.displayErr(w, http.StatusInternalServerError,
-				fmt.Errorf("parsing tag filter: %s", err))
-			return
-		}
-	} else {
-		tagFilter = -1
-	}
-	if afterString != "" {
-		after_, err := discord.ParseSnowflake(afterString)
-		if err != nil {
-			s.displayErr(w, http.StatusInternalServerError,
-				fmt.Errorf("parsing after number: %s", err))
-			return
-		}
-		after = discord.ChannelID(after_)
-	} else {
-		after = 0
-	}
-
 	ctx := struct {
-		Guild     *discord.Guild
-		Forum     *discord.Channel
-		Posts     []Post
-		URL       string
-		TagFilter int
-		ShowPrev  bool
-		PrevPage  int
-		ShowNext  bool
-		NextPage  int
-	}{Guild: guild, Forum: forum, Posts: nil, URL: s.URL,
-		TagFilter: tagFilter}
+		Guild *discord.Guild
+		Forum *discord.Channel
+		Posts []Post
+		Prev  int
+		Next  int
+		URL   string
+	}{Guild: guild,
+		Forum: forum,
+		URL:   s.URL}
 	channels, err := s.discord.Cabinet.Channels(guild.ID)
 	if err != nil {
 		s.displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching guild threads: %w", err))
 		return
 	}
-	// due to the way discord handles threads in forums (they're basically more
-	// channels), we need to go through the entire server and filter by
-	// parent channel.
-	// trying to limit how many results within this for loop leads to
-	// unstable results.
+	var posts []Post
 	for _, thread := range channels {
 		if thread.ParentID != forum.ID ||
 			thread.Type != discord.GuildPublicThread {
 			continue
-		}
-		show := true
-		if tagFilter != -1 {
-			show = false
 		}
 		post := Post{Channel: thread}
 		for _, tag := range thread.AppliedTags {
@@ -358,72 +301,36 @@ func (s *server) getForumSync(w http.ResponseWriter, r *http.Request) {
 					post.Tags = append(post.Tags, availtag)
 				}
 			}
-			if tag == discord.TagID(tagFilter) {
-				show = true
-			}
 		}
-		if show {
-			ctx.Posts = append(ctx.Posts, post)
-		}
+		posts = append(posts, post)
 	}
-
 	sort.SliceStable(ctx.Posts, func(i, j int) bool {
 		if ctx.Posts[i].Flags^ctx.Posts[j].Flags&discord.PinnedThread != 0 {
 			return ctx.Posts[i].Flags&discord.PinnedThread != 0
 		}
 		return ctx.Posts[i].LastMessageID.Time().After(ctx.Posts[j].LastMessageID.Time())
 	})
-
-	// so limit the posts right here instead.
-	postsFiltered := make([]Post, 0)
-	postNum := 0
-	show := false
-	lastIgnoredPost := 0
-	if after == 0 {
-		show = true
+	page, err := strconv.Atoi(chi.URLParam(r, "page"))
+	if err != nil || page < 1 {
+		page = 1
 	}
-	for i, post := range ctx.Posts {
-		if post.ID == after {
-			show = true
-		}
-		if show {
-			if postNum >= paginationLimit {
-				ctx.NextPage = int(post.ID)
-				ctx.ShowNext = true
-				break
-			}
-			postsFiltered = append(postsFiltered, post)
-			postNum++
-		} else {
-			lastIgnoredPost = i + 1
-			continue
-		}
+	if page > 1 {
+		ctx.Prev = page - 1
 	}
-	// if there's a post behind us, have a "previous" button for that
-	if lastIgnoredPost-paginationLimit >= 0 {
-		post := ctx.Posts[lastIgnoredPost-paginationLimit]
-		ctx.ShowPrev = true
-		ctx.PrevPage = int(post.ID)
+	if len(posts) > page*25 {
+		ctx.Next = page + 1
+		posts = posts[(page-1)*25 : page*25]
+	} else if len(posts) >= (page-1)*25 {
+		posts = posts[(page-1)*25:]
+	} else {
+		posts = nil
 	}
-	ctx.Posts = postsFiltered
-
+	ctx.Posts = posts
 	s.executeTemplate(w, r, "forum.gohtml", ctx)
 }
 
-// we want to limit the number of threads that can be dedicated to the post page.
-var postPageSemaphore = NewSemaphore(100)
-
 func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
-	postPageSemaphore.AcquireRead()
-	defer postPageSemaphore.Release()
-	ch := make(chan int)
-	go func() {
-		s.getPostSync(w, r)
-		ch <- 1
-	}()
-	<-ch
-}
-func (s *server) getPostSync(w http.ResponseWriter, r *http.Request) {
+
 	guild, ok := s.guildFromReq(w, r)
 	if !ok {
 		return
@@ -440,37 +347,52 @@ func (s *server) getPostSync(w http.ResponseWriter, r *http.Request) {
 		Guild         *discord.Guild
 		Forum         *discord.Channel
 		Post          *discord.Channel
+		Prev          discord.MessageID
+		Next          discord.MessageID
 		MessageGroups []MessageGroup
-		NextID        discord.MessageID
-		PrevID        discord.MessageID
 		URL           string
-	}{Guild: guild, Forum: forum, Post: post, URL: s.URL}
+	}{Guild: guild,
+		Forum: forum,
+		Post:  post,
+		URL:   s.URL}
 
-	cur := 0
+	var cur discord.MessageID
 	asc := true
 	curstr := r.URL.Query().Get("cur")
 	if len(curstr) >= 2 {
 		asc = curstr[0] == 'a'
-		cur, _ = strconv.Atoi(curstr[1:])
-	} else {
-		asc = true
-		cur = 0
+		sf, err := discord.ParseSnowflake(curstr[1:])
+		if err != nil {
+			s.displayErr(w, http.StatusBadRequest,
+				fmt.Errorf("invalid snowflake: %w", err))
+			return
+		}
+		cur = discord.MessageID(sf)
 	}
 
 	var msgs []discord.Message
+	var hasbefore, hasafter bool
 	var err error
 	if asc {
-		msgs, err, ctx.PrevID, ctx.NextID = s.messageCache.MessagesAfter(post.ID, uint(cur), paginationLimit)
+		msgs, hasbefore, hasafter, err = s.messageCache.MessagesAfter(post.ID, cur, 25)
 	} else {
-		msgs, err, ctx.PrevID, ctx.NextID = s.messageCache.MessagesBefore(post.ID, uint(cur), paginationLimit)
+		msgs, hasbefore, hasafter, err = s.messageCache.MessagesBefore(post.ID, cur, 25)
+	}
+	if hasafter && len(msgs) > 0 {
+		ctx.Next = msgs[len(msgs)-1].ID
+	}
+	if hasbefore {
+		fmt.Println("hasbefore is  SUPER TRUE")
+		ctx.Prev = msgs[0].ID
 	}
 	if err != nil {
 		s.displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching post's messages: %w", err))
 		return
 	}
-
-	err = s.ensureMembers(r.Context(), *post, msgs)
+	timeout, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	err = s.ensureMembers(timeout, *post, msgs)
+	cancel()
 	if err != nil {
 		s.displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching post's members: %w", err))

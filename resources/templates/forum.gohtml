@@ -19,9 +19,6 @@
         <option value="">All</option>
         {{range .Forum.AvailableTags}}
             {{$selected := false}}
-            {{if eq .ID $.TagFilter}}
-                {{$selected = true}}
-            {{end}}
 
             <option value="{{.ID}}" {{if $selected}}selected{{end}}>{{.Name}}</option>
         {{end}}
@@ -29,8 +26,6 @@
     <input type="submit" value=">">
 </form>
 </nav>
-
-{{ template "navbuttons" . }}
 
 <div class='tabular-list post-list'>
     <div class='header'>Title</div>
@@ -71,6 +66,11 @@
 
 </div>
 
-{{ template "navbuttons" . }}
+{{if .Prev}}
+<a class="prevbtn btn" href="/{{.Guild.ID}}/{{.Forum.ID}}/page/{{.Prev}}">Previous</a><br>
+{{end}}
+{{if .Next}}
+<a class="nextbtn btn" href="/{{.Guild.ID}}/{{.Forum.ID}}/page/{{.Next}}">Next</a><br>
+{{end}}
 
 {{ template "footer.gohtml" .}}
