@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -22,15 +23,15 @@ import (
 
 //go:embed resources
 var embedfs embed.FS
-var tmpl *template.Template
 
 type config struct {
-	BotToken       string
-	ListenAddr     string
-	Resources      string
-	SiteURL        string
-	ServiceName    string
-	ServerHostedIn string
+	BotToken        string
+	ListenAddr      string
+	Resources       string
+	SiteURL         string
+	ServiceName     string
+	ServerHostedIn  string
+	ReloadTemplates bool
 }
 
 func main() {
@@ -49,16 +50,31 @@ func main() {
 	if config.Resources != "" {
 		fsys = os.DirFS(config.Resources)
 	} else {
+		config.ReloadTemplates = false
 		if fsys, err = fs.Sub(embedfs, "resources"); err != nil {
 			log.Fatalln("Error while using embedded resources:")
 		}
 	}
-
-	tmpl = template.New("")
-	tmpl.Funcs(funcMap)
-	_, err = tmpl.ParseFS(fsys, "templates/*")
-	if err != nil {
-		log.Fatalln("Error parsing templates:", err)
+	var tmplfn ExecuteTemplateFunc
+	if config.ReloadTemplates {
+		tmplfn = func(wr io.Writer, name string, data interface{}) error {
+			tmpl := template.New("")
+			tmpl.Funcs(funcMap)
+			_, err = tmpl.ParseFS(fsys, "templates/*")
+			if err != nil {
+				return err
+			}
+			tmpl.Funcs(funcMap)
+			return tmpl.ExecuteTemplate(wr, name, data)
+		}
+	} else {
+		tmpl := template.New("")
+		tmpl.Funcs(funcMap)
+		_, err = tmpl.ParseFS(fsys, "templates/*")
+		if err != nil {
+			log.Fatalln("Error parsing templates:", err)
+		}
+		tmplfn = tmpl.ExecuteTemplate
 	}
 
 	ctx, done := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -84,6 +100,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	server.executeTemplateFn = tmplfn
 	httpserver := &http.Server{
 		Addr:           config.ListenAddr,
 		Handler:        server,
