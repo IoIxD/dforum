@@ -36,9 +36,7 @@ type server struct {
 	requestMembers sync.Mutex
 	membersGot     map[discord.ChannelID]struct{}
 
-	sitemap        []byte
-	sitemapUpdated time.Time
-	sitemapMu      sync.Mutex
+	sitemapCache map[string]sitemap
 
 	// configuration options
 	URL               string
@@ -72,6 +70,8 @@ func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
 	})
 	r := chi.NewRouter()
 	srv.r = r
+	srv.sitemapCache = make(map[string]sitemap)
+
 	r.Use(middleware.Logger)
 	r.Mount("/debug", middleware.Profiler())
 

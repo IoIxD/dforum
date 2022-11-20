@@ -6,11 +6,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 )
+
+type Sitemap struct {
+	XMLName   string  `xml:"sitemap"`
+	Location  string  `xml:"loc"`
+	LastMod   string  `xml:"lastmod,omitempty"`
+	Frequency string  `xml:"changefreq,omitempty"`
+	Priority  float32 `xml:"priority,omitempty"`
+}
 
 type URL struct {
 	XMLName   string  `xml:"url"`
@@ -20,34 +29,55 @@ type URL struct {
 	Priority  float32 `xml:"priority,omitempty"`
 }
 
+type sitemap struct {
+	mutex   *sync.Mutex
+	bytes   []byte
+	updated time.Time
+}
+
 func (s *server) getSitemap(w http.ResponseWriter, r *http.Request) {
-	s.sitemapMu.Lock()
-	var sitemap []byte
-	var modtime time.Time
-	if s.sitemap == nil || time.Since(s.sitemapUpdated) > 6*time.Hour {
-		buf := s.buffers.Get().(*bytes.Buffer)
-		err := s.writeSitemap(buf)
+	var offset int
+	var err error
+	offsetStr := r.URL.Query().Get("offset")
+	if offsetStr == "" {
+		offset = -1
+	} else {
+		offset, err = strconv.Atoi(offsetStr)
 		if err != nil {
-			s.sitemapMu.Unlock()
+			w.Write([]byte(err.Error()))
+			return
+		}
+	}
+	sitemap := s.sitemapCache[offsetStr]
+	sitemap.mutex = &sync.Mutex{}
+
+	sitemap.mutex.Lock()
+	var modtime time.Time
+	bytebuf := make([]byte, 0)
+	if sitemap.bytes == nil || time.Since(sitemap.updated) > 6*time.Hour {
+		buf := s.buffers.Get().(*bytes.Buffer)
+		err := s.writeSitemap(buf, offset)
+		if err != nil {
+			sitemap.mutex.Unlock()
 			buf.Reset()
 			s.buffers.Put(buf)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		sitemap = make([]byte, buf.Len())
-		copy(sitemap, buf.Bytes())
-		s.sitemap = sitemap
-		s.sitemapUpdated = time.Now()
-		modtime = s.sitemapUpdated
-		s.sitemapMu.Unlock()
+		sitemap.bytes = make([]byte, buf.Len())
+		copy(sitemap.bytes, buf.Bytes())
+		bytebuf = sitemap.bytes
+		sitemap.updated = time.Now()
+		modtime = sitemap.updated
+		sitemap.mutex.Unlock()
 		buf.Reset()
 		s.buffers.Put(buf)
 	} else {
-		sitemap = s.sitemap
-		modtime = s.sitemapUpdated
-		s.sitemapMu.Unlock()
+		bytebuf = sitemap.bytes
+		modtime = sitemap.updated
+		sitemap.mutex.Unlock()
 	}
-	rdr := bytes.NewReader(sitemap)
+	rdr := bytes.NewReader(bytebuf)
 	http.ServeContent(w, r, "sitemap.xml", modtime, rdr)
 }
 
@@ -59,6 +89,15 @@ var XMLURLSetStart = xml.StartElement{
 }
 
 var XMLURLSetEnd = XMLURLSetStart.End()
+
+var XMLSitemapStart = xml.StartElement{
+	Name: xml.Name{Local: "sitemapindex"},
+	Attr: []xml.Attr{
+		{Name: xml.Name{Local: "xmlns"}, Value: "http://www.sitemaps.org/schemas/sitemap/0.9"},
+	},
+}
+
+var XMLSitemapEnd = XMLSitemapStart.End()
 
 type URLMap struct {
 	urls map[int]URL
@@ -77,13 +116,19 @@ func (u *URLMap) Push(url URL) {
 	u.urls[len(u.urls)] = url
 }
 
-func (s *server) writeSitemap(w io.Writer) error {
+func (s *server) writeSitemap(w io.Writer, offset int) error {
 	if _, err := io.WriteString(w, xml.Header); err != nil {
 		return err
 	}
 	enc := xml.NewEncoder(w)
 	var err error
-	if err = enc.EncodeToken(XMLURLSetStart); err != nil {
+	var token xml.Token
+	if offset == -1 {
+		token = XMLSitemapStart
+	} else {
+		token = XMLURLSetStart
+	}
+	if err = enc.EncodeToken(token); err != nil {
 		return err
 	}
 	guilds, _ := s.discord.Cabinet.Guilds()
@@ -219,22 +264,47 @@ func (s *server) writeSitemap(w io.Writer) error {
 		{
 		}
 	}
-	for _, url := range forumURLs.urls {
-		if err = enc.Encode(url); err != nil {
-			return err
+
+	totalLen := len(forumURLs.urls) + len(chanURLs.urls) + len(postURLs.urls)
+
+	if offset == -1 {
+		chunks := totalLen / 20
+		for i := 0; i < chunks; i++ {
+			if err = enc.Encode(Sitemap{
+				Location: fmt.Sprintf("%v/sitemap.xml?offset=%v", s.URL, i*20),
+			}); err != nil {
+				return err
+			}
+		}
+	} else {
+		urls := *new([]URL)
+		for _, url := range forumURLs.urls {
+			urls = append(urls, url)
+		}
+		for _, url := range chanURLs.urls {
+			urls = append(urls, url)
+		}
+		for _, url := range postURLs.urls {
+			urls = append(urls, url)
+		}
+		if offset+20 <= len(urls) {
+			urls = urls[offset : offset+20]
+		} else {
+			urls = urls[offset:]
+		}
+		for _, url := range urls {
+			if err = enc.Encode(url); err != nil {
+				return err
+			}
 		}
 	}
-	for _, url := range chanURLs.urls {
-		if err = enc.Encode(url); err != nil {
-			return err
-		}
+
+	if offset == -1 {
+		token = XMLSitemapEnd
+	} else {
+		token = XMLURLSetEnd
 	}
-	for _, url := range postURLs.urls {
-		if err = enc.Encode(url); err != nil {
-			return err
-		}
-	}
-	if err = enc.EncodeToken(XMLURLSetEnd); err != nil {
+	if err = enc.EncodeToken(token); err != nil {
 		return err
 	}
 	if err = enc.Flush(); err != nil {
