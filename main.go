@@ -14,8 +14,6 @@ import (
 	"os/signal"
 	"time"
 
-	_ "net/http/pprof"
-
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/naoina/toml"
@@ -104,8 +102,8 @@ func main() {
 	httpserver := &http.Server{
 		Addr:           config.ListenAddr,
 		Handler:        server,
-		ReadTimeout:    60 * time.Second,
-		WriteTimeout:   60 * time.Second,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 	httperr := make(chan error, 1)

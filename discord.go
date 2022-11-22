@@ -2,40 +2,13 @@ package main
 
 import (
 	"context"
+	"sort"
 	"sync"
-	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 )
-
-const SemaphoreLimit = 128
-
-type Semaphore struct {
-	semaCh chan struct{}
-}
-
-func NewSemaphore(maxReq int) *Semaphore {
-	return &Semaphore{
-		semaCh: make(chan struct{}, maxReq),
-	}
-}
-
-func (s *Semaphore) AcquireRead() {
-	s.semaCh <- struct{}{}
-}
-
-func (s *Semaphore) AcquireWrite() {
-	for len(s.semaCh) > 0 {
-		<-s.semaCh
-	}
-	s.semaCh <- struct{}{}
-}
-
-func (s *Semaphore) Release() {
-	<-s.semaCh
-}
 
 // ensureArchivedThreads ensures that all archived threads in the channel are in
 // the cache.
@@ -47,7 +20,7 @@ func (s *server) ensureArchivedThreads(cid discord.ChannelID) error {
 	}
 	var before discord.Timestamp
 	for {
-		threads, err := s.discord.PublicArchivedThreads(cid, before, 0)
+		threads, err := s.discord.PublicArchivedThreads(cid, before, 100)
 		if err != nil {
 			return err
 		}
@@ -57,7 +30,7 @@ func (s *server) ensureArchivedThreads(cid discord.ChannelID) error {
 		if !threads.More {
 			break
 		}
-		before = discord.Timestamp(threads.Threads[len(threads.Threads)-1].ID.Time())
+		before = threads.Threads[len(threads.Threads)-1].ThreadMetadata.ArchiveTimestamp
 	}
 	s.fetchedInactive[cid] = struct{}{}
 	return nil
@@ -106,17 +79,22 @@ func (s *server) ensureMembers(ctx context.Context, post discord.Channel, msgs [
 	}
 }
 
-// MESSAGE CACHE
-
 type messageCache struct {
 	*api.Client
 	channels sync.Map // discord.ChannelID -> *channel
 }
 
+// fetchCallback is a callback that is ran every time a batch of messages is
+// fetched. It returns true when it should stop being called.
+type fetchCallback func(msgs []discord.Message, full bool, err error) (done bool)
+
 type channel struct {
-	msgs   []discord.Message
-	sem    *Semaphore
-	hasAll bool
+	mut  sync.Mutex
+	msgs []discord.Message
+
+	fetchCallbacks chan<- fetchCallback
+	// fetchDone is closed when the messages have been fully fetched.
+	fetchDone <-chan struct{}
 }
 
 func newMessageCache(c *api.Client) *messageCache {
@@ -126,30 +104,25 @@ func newMessageCache(c *api.Client) *messageCache {
 }
 
 func (c *messageCache) Set(m discord.Message, update bool) {
-	for i := 0; i < 0; i++ {
-		v, ok := c.channels.Load(m.ChannelID)
-		if !ok {
-			return
-		}
-		ch := v.(*channel)
-		if ch.sem == nil {
-			ch.sem = NewSemaphore(SemaphoreLimit)
-		}
-		ch.sem.AcquireWrite()
-		defer ch.sem.Release()
-		if ch.msgs == nil {
-			return
-		}
-		if update {
-			for i := len(ch.msgs) - 1; i >= 0; i-- {
-				if ch.msgs[i].ID == m.ID {
-					ch.msgs[i] = m
-					return
-				}
+	v, ok := c.channels.Load(m.ChannelID)
+	if !ok {
+		return
+	}
+	ch := v.(*channel)
+	ch.mut.Lock()
+	defer ch.mut.Unlock()
+	if ch.msgs == nil {
+		return
+	}
+	if update {
+		for i := len(ch.msgs) - 1; i >= 0; i-- {
+			if ch.msgs[i].ID == m.ID {
+				ch.msgs[i] = m
+				return
 			}
 		}
-		ch.msgs = append(ch.msgs, m)
 	}
+	ch.msgs = append(ch.msgs, m)
 }
 
 func (c *messageCache) Remove(chid discord.ChannelID, id discord.MessageID) {
@@ -158,11 +131,8 @@ func (c *messageCache) Remove(chid discord.ChannelID, id discord.MessageID) {
 		return
 	}
 	ch := v.(*channel)
-	if ch.sem == nil {
-		ch.sem = NewSemaphore(SemaphoreLimit)
-	}
-	ch.sem.AcquireWrite()
-	defer ch.sem.Release()
+	ch.mut.Lock()
+	defer ch.mut.Unlock()
 	for i, msg := range ch.msgs {
 		if msg.ID == id {
 			ch.msgs = append(ch.msgs[:i], ch.msgs[i+1:]...)
@@ -171,91 +141,158 @@ func (c *messageCache) Remove(chid discord.ChannelID, id discord.MessageID) {
 	}
 }
 
-func (c *messageCache) MessagesBetween(id discord.ChannelID, before, after, limit uint) ([]discord.Message, error, discord.MessageID, discord.MessageID) {
+type result struct {
+	msgs []discord.Message
+	err  error
+}
+
+func (c *messageCache) MessagesAfter(ch discord.ChannelID, m discord.MessageID, limit uint) (messages []discord.Message, hasbefore, hasafter bool, err error) {
+	c.messages(ch, func(msgs []discord.Message, full bool, e error) (done bool) {
+		if e != nil {
+			err = e
+			return true
+		}
+		i := sort.Search(len(msgs), func(i int) bool {
+			return msgs[i].ID >= m
+		})
+		if i >= len(msgs) {
+			return true
+		}
+		if msgs[i].ID == m {
+			i++
+		}
+		if i > 0 {
+			hasbefore = true
+		}
+		if len(msgs)-i > int(limit) {
+			messages = msgs[i : i+int(limit)]
+			hasafter = true
+			return true
+		}
+		messages = msgs[i:]
+		return full
+	})
+	return
+}
+
+func (c *messageCache) MessagesBefore(ch discord.ChannelID, m discord.MessageID, limit uint) (messages []discord.Message, hasbefore, hasafter bool, err error) {
+	c.messages(ch, func(msgs []discord.Message, full bool, e error) (done bool) {
+		if e != nil {
+			err = e
+			return true
+		}
+		i := sort.Search(len(msgs), func(i int) bool {
+			return msgs[i].ID >= m
+		})
+		if i == 0 {
+			return true
+		}
+		if i == len(msgs) && !full {
+			return false
+		}
+		if i < len(msgs) {
+			hasafter = true
+		}
+		if uint(i) > limit {
+			messages = make([]discord.Message, limit)
+			copy(messages, msgs[i-int(limit):i])
+			hasbefore = true
+			return true
+		}
+		messages = make([]discord.Message, i)
+		copy(messages, msgs[:i])
+		return true
+	})
+	return
+}
+
+func (c *messageCache) messages(id discord.ChannelID, fn fetchCallback) {
 	v, _ := c.channels.LoadOrStore(id, &channel{})
 	ch := v.(*channel)
-	if ch.sem == nil {
-		ch.sem = NewSemaphore(SemaphoreLimit)
+	ch.mut.Lock()
+	if ch.msgs != nil {
+		fn(ch.msgs, true, nil)
+		ch.mut.Unlock()
+		return
 	}
-	ch.sem.AcquireRead()
-	defer ch.sem.Release()
-	if ch.msgs == nil {
-		msgs, err := c.Client.MessagesAfter(id, discord.MessageID(after), paginationLimit+1)
-		if err != nil {
-			return nil, err, 0, 0
+	done := make(chan struct{})
+	wrapped := func(msgs []discord.Message, good bool, err error) bool {
+		found := fn(msgs, good, err)
+		if found || good {
+			close(done)
+			return true
 		}
-		for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
-			msgs[i], msgs[j] = msgs[j], msgs[i]
-		}
+		return false
+	}
+	if ch.fetchCallbacks != nil {
+		ch.fetchCallbacks <- wrapped
+		ch.mut.Unlock()
+		<-done
+		return
+	}
+	callbacks := make(chan fetchCallback, 1)
+	callbacks <- wrapped
+	ch.fetchCallbacks = callbacks
+	ch.mut.Unlock()
+	go func() {
+		msgs, err := load(c.Client, id, callbacks)
+		ch.mut.Lock()
+		ch.fetchCallbacks = nil
 		ch.msgs = msgs
-		// start a little goroutine in the back to cache the rest of the messages
-		go func() {
-			time.Sleep(1 * time.Second)
-			msgs, _ := c.Client.Messages(id, 0)
-			for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
-				msgs[i], msgs[j] = msgs[j], msgs[i]
+	Outer:
+		for {
+			select {
+			case fn := <-callbacks:
+				fn(msgs, true, err)
+			default:
+				break Outer
 			}
-			ch.msgs = msgs
-			ch.hasAll = true
+		}
+		ch.mut.Unlock()
+	}()
+	<-done
+	return
+}
+
+func load(client *api.Client, chanID discord.ChannelID, callbackchan <-chan fetchCallback) ([]discord.Message, error) {
+	var after discord.MessageID
+	var err error
+	var msgs []discord.Message
+	var callbacks []fetchCallback
+	for {
+		var m []discord.Message
+		done := make(chan struct{})
+		go func() {
+			m, err = client.MessagesAfter(chanID, after, 100)
+			done <- struct{}{}
 		}()
-	}
-	// if either before or after are set we need to wait for all the messages to be cached
-	//fmt.Println(before, ", ", after)
-	if before != 0 && after != 0 {
-		for !ch.hasAll {
-			time.Sleep(250 * time.Millisecond)
+	Outer:
+		for {
+			select {
+			case f := <-callbackchan:
+				callbacks = append(callbacks, f)
+			case <-done:
+				break Outer
+			}
 		}
-	}
-
-	beforeInt := 0
-	afterInt := 0
-	var prevID, nextID discord.MessageID
-
-	for i, msg := range ch.msgs {
-		if uint(msg.ID) == before {
-			beforeInt = i
+		if err != nil {
+			break
 		}
-		if uint(msg.ID) == after {
-			afterInt = i
+		for i, j := 0, len(m)-1; i < j; i, j = i+1, j-1 {
+			m[i], m[j] = m[j], m[i]
 		}
-
-	}
-
-	// if there's nothing before us or before is unset
-	if beforeInt == 0 {
-		// set the before int to the max
-		beforeInt = int(limit + uint(afterInt))
-		if beforeInt > len(ch.msgs) {
-			beforeInt = len(ch.msgs)
+		msgs = append(msgs, m...)
+		retainedcallbacks := callbacks[:0]
+		for _, f := range callbacks {
+			if !f(msgs, false, nil) {
+				retainedcallbacks = append(retainedcallbacks, f)
+			}
 		}
+		callbacks = retainedcallbacks
+		if len(m) < 100 {
+			break
+		}
+		after = m[99].ID
 	}
-	if beforeInt+1 < len(ch.msgs) {
-		nextID = ch.msgs[beforeInt+1].ID
-	}
-	if afterInt-1 > 0 {
-		afterInt -= 1
-		prevID = ch.msgs[afterInt].ID
-	}
-
-	// if after is unset
-	if afterInt == 0 {
-		afterInt = beforeInt - int(limit)
-	}
-	if afterInt < 0 {
-		afterInt = 0
-	}
-
-	msgs := make([]discord.Message, len(ch.msgs[afterInt:beforeInt]))
-	copy(msgs, ch.msgs[afterInt:beforeInt])
-	return msgs, nil, prevID, nextID
-}
-
-func (c *messageCache) Messages(id discord.ChannelID, limit uint) ([]discord.Message, error, discord.MessageID, discord.MessageID) {
-	return c.MessagesBetween(id, 0, 0, limit)
-}
-func (c *messageCache) MessagesBefore(id discord.ChannelID, before, limit uint) ([]discord.Message, error, discord.MessageID, discord.MessageID) {
-	return c.MessagesBetween(id, before, 0, limit)
-}
-func (c *messageCache) MessagesAfter(id discord.ChannelID, after, limit uint) ([]discord.Message, error, discord.MessageID, discord.MessageID) {
-	return c.MessagesBetween(id, 0, after, limit)
+	return msgs, err
 }
