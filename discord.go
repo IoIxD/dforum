@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -10,30 +11,50 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 )
 
-// ensureArchivedThreads ensures that all archived threads in the channel are in
-// the cache.
-func (s *server) ensureArchivedThreads(cid discord.ChannelID) error {
+func (s *server) channels(guildID discord.GuildID) ([]discord.Channel, error) {
 	s.fetchedInactiveMu.Lock()
 	defer s.fetchedInactiveMu.Unlock()
-	if _, ok := s.fetchedInactive[cid]; ok {
-		return nil
+	channels, err := s.discord.Channels(guildID)
+	if err != nil {
+		return nil, err
 	}
-	var before discord.Timestamp
-	for {
-		threads, err := s.discord.PublicArchivedThreads(cid, before, 100)
-		if err != nil {
-			return err
-		}
-		for _, t := range threads.Threads {
-			s.discord.Cabinet.ChannelStore.ChannelSet(&t, false)
-		}
-		if !threads.More {
-			break
-		}
-		before = threads.Threads[len(threads.Threads)-1].ThreadMetadata.ArchiveTimestamp
+	guild, _ := s.discord.Cabinet.Guild(guildID)
+	me, _ := s.discord.Cabinet.Me()
+	selfMember, err := s.discord.Member(guildID, me.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get self as member: %w", err)
 	}
-	s.fetchedInactive[cid] = struct{}{}
-	return nil
+	for _, ch := range channels {
+		if ch.Type != discord.GuildForum {
+			continue
+		}
+		if _, ok := s.fetchedInactive[ch.ID]; ok {
+			continue
+		}
+		perms := discord.CalcOverwrites(*guild, ch, *selfMember)
+		if !perms.Has(0 |
+			discord.PermissionReadMessageHistory |
+			discord.PermissionViewChannel) {
+			continue
+		}
+		var before discord.Timestamp
+		for {
+			threads, err := s.discord.PublicArchivedThreads(ch.ID, before, 0)
+			if err != nil {
+				return nil, err
+			}
+			for _, t := range threads.Threads {
+				s.discord.Cabinet.ChannelStore.ChannelSet(&t, false)
+				channels = append(channels, t)
+			}
+			if !threads.More {
+				break
+			}
+			before = threads.Threads[len(threads.Threads)-1].ThreadMetadata.ArchiveTimestamp
+		}
+		s.fetchedInactive[ch.ID] = struct{}{}
+	}
+	return channels, nil
 }
 
 // ensureMembers ensures that all message authors are in the cache.
@@ -270,7 +291,9 @@ func load(client *api.Client, chanID discord.ChannelID, callbackchan <-chan fetc
 		for {
 			select {
 			case f := <-callbackchan:
-				callbacks = append(callbacks, f)
+				if len(msgs) == 0 || !f(msgs, false, err) {
+					callbacks = append(callbacks, f)
+				}
 			case <-done:
 				break Outer
 			}
@@ -284,14 +307,14 @@ func load(client *api.Client, chanID discord.ChannelID, callbackchan <-chan fetc
 		msgs = append(msgs, m...)
 		retainedcallbacks := callbacks[:0]
 		for _, f := range callbacks {
-			if !f(msgs, false, nil) {
+			if !f(msgs, len(m) < 100, nil) {
 				retainedcallbacks = append(retainedcallbacks, f)
 			}
 		}
-		callbacks = retainedcallbacks
 		if len(m) < 100 {
 			break
 		}
+		callbacks = retainedcallbacks
 		after = m[99].ID
 	}
 	return msgs, err

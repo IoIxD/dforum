@@ -179,44 +179,30 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 		ForumChannels []ForumChannel
 		URL           string
 	}{Guild: guild, URL: s.URL}
-	channels, err := s.discord.Cabinet.Channels(guild.ID)
+
+	channels, err := s.channels(guild.ID)
 	if err != nil {
 		s.displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching guild channels: %s", err))
 		return
 	}
-	var forums []discord.Channel
-	for _, channel := range channels {
-		if channel.Type != discord.GuildForum {
+	me, _ := s.discord.Cabinet.Me()
+	selfMember, err := s.discord.Member(guild.ID, me.ID)
+	if err != nil {
+		s.displayErr(w, http.StatusInternalServerError,
+			fmt.Errorf("error fetching self as member: %s", err))
+		return
+	}
+	for _, forum := range channels {
+		if forum.Type != discord.GuildForum {
 			continue
 		}
-		me, _ := s.discord.Cabinet.Me()
-		perms, err := s.discord.Permissions(channel.ID, me.ID)
-		if err != nil {
-			s.displayErr(w, http.StatusInternalServerError,
-				fmt.Errorf("fetching channel permissions: %s", err))
-			return
-		}
+		perms := discord.CalcOverwrites(*guild, forum, *selfMember)
 		if !perms.Has(0 |
 			discord.PermissionReadMessageHistory |
 			discord.PermissionViewChannel) {
 			continue
 		}
-		err = s.ensureArchivedThreads(channel.ID)
-		if err != nil {
-			s.displayErr(w, http.StatusInternalServerError,
-				fmt.Errorf("fetching archived threads: %s", err))
-			return
-		}
-		forums = append(forums, channel)
-	}
-	channels, err = s.discord.Cabinet.Channels(guild.ID)
-	if err != nil {
-		s.displayErr(w, http.StatusInternalServerError,
-			fmt.Errorf("fetching guild channels: %s", err))
-		return
-	}
-	for _, forum := range forums {
 		var posts []discord.Channel
 		for _, t := range channels {
 			if t.ParentID == forum.ID &&
@@ -265,12 +251,6 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	err := s.ensureArchivedThreads(forum.ID)
-	if err != nil {
-		s.displayErr(w, http.StatusInternalServerError,
-			fmt.Errorf("fetching archived threads: %s", err))
-		return
-	}
 
 	ctx := struct {
 		Guild *discord.Guild
@@ -282,7 +262,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	}{Guild: guild,
 		Forum: forum,
 		URL:   s.URL}
-	channels, err := s.discord.Cabinet.Channels(guild.ID)
+	channels, err := s.channels(guild.ID)
 	if err != nil {
 		s.displayErr(w, http.StatusInternalServerError,
 			fmt.Errorf("fetching guild threads: %w", err))
@@ -330,7 +310,6 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
-
 	guild, ok := s.guildFromReq(w, r)
 	if !ok {
 		return

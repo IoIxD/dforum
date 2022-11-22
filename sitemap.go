@@ -69,75 +69,41 @@ func (s *server) writeSitemap(w io.Writer) error {
 		return err
 	}
 	guilds, _ := s.discord.Cabinet.Guilds()
+	me, _ := s.discord.Cabinet.Me()
 	for _, guild := range guilds {
 		if err = enc.Encode(URL{
 			Location: fmt.Sprintf("%s/%s", s.URL, guild.ID),
 		}); err != nil {
 			return err
 		}
-
-		channels, err := s.discord.Cabinet.Channels(guild.ID)
+		memberSelf, err := s.discord.Member(guild.ID, me.ID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error fetching self as member: %w", err)
 		}
-		// we first need to go through these channels and ensure their messages
-		// are cached
-		for _, channel := range channels {
-			if channel.Type != discord.GuildForum {
+		channels, err := s.channels(guild.ID)
+		if err != nil {
+			return fmt.Errorf("error fetching channels: %w", err)
+		}
+		for _, forum := range channels {
+			if forum.Type != discord.GuildForum {
 				continue
 			}
-			me, _ := s.discord.Cabinet.Me()
-			perms, err := s.discord.Permissions(channel.ID, me.ID)
-			if err != nil {
-				return fmt.Errorf("fetching channel permissions for %s: %s", channel.Name, err)
-			}
+			perms := discord.CalcOverwrites(guild, forum, *memberSelf)
 			if !perms.Has(0 |
 				discord.PermissionReadMessageHistory |
 				discord.PermissionViewChannel) {
 				continue
 			}
-			err = s.ensureArchivedThreads(channel.ID)
-			if err != nil {
-				return fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
-			}
-		}
-		// and then go through it again.
-		channels, _ = s.discord.Cabinet.Channels(guild.ID)
-		var forums []discord.Channel
-		for _, channel := range channels {
-			if channel.Type != discord.GuildForum {
-				continue
-			}
-			me, _ := s.discord.Cabinet.Me()
-			perms, err := s.discord.Permissions(channel.ID, me.ID)
-			if err != nil {
-				return fmt.Errorf("fetching channel permissions for %s: %s", channel.Name, err)
-			}
-			if !perms.Has(0 |
-				discord.PermissionReadMessageHistory |
-				discord.PermissionViewChannel) {
-				continue
-			}
-			err = s.ensureArchivedThreads(channel.ID)
-			if err != nil {
-				return fmt.Errorf("fetching archived threads for %s: %s", channel.Name, err)
-			}
-			forums = append(forums, channel)
-		}
-		for _, forum := range forums {
 			if err = enc.Encode(URL{
 				Location: fmt.Sprintf("%s/%s/%s", s.URL, guild.ID, forum.ID),
 			}); err != nil {
 				return err
 			}
-			var posts []discord.Channel
-			for _, t := range channels {
-				if t.ParentID == forum.ID &&
-					t.Type == discord.GuildPublicThread {
-					posts = append(posts, t)
+			for _, post := range channels {
+				if post.ParentID != forum.ID ||
+					post.Type != discord.GuildPublicThread {
+					continue
 				}
-			}
-			for _, post := range posts {
 				if err = enc.Encode(URL{
 					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
 				}); err != nil {
