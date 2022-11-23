@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IoIxD/dforum/database"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -49,24 +50,27 @@ type server struct {
 
 type ExecuteTemplateFunc func(w io.Writer, name string, data interface{}) error
 
-func newServer(st *state.State, fsys fs.FS, config config) (*server, error) {
+func newServer(st *state.State, fsys fs.FS, db database.Database, config config) (*server, error) {
 	srv := &server{
 		fetchedInactive: make(map[discord.ChannelID]struct{}),
 		discord:         st,
-		messageCache:    newMessageCache(st.Client),
+		messageCache:    newMessageCache(st, db),
 		buffers:         &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
 		URL:             config.SiteURL,
 		ServiceName:     config.ServiceName,
 		ServerHostedIn:  config.ServerHostedIn,
 	}
 	st.AddHandler(func(m *gateway.MessageCreateEvent) {
-		srv.messageCache.Set(m.Message, false)
+		srv.messageCache.Set(context.Background(), m.Message, false)
 	})
 	st.AddHandler(func(m *gateway.MessageUpdateEvent) {
-		srv.messageCache.Set(m.Message, true)
+		srv.messageCache.Set(context.Background(), m.Message, true)
 	})
 	st.AddHandler(func(m *gateway.MessageDeleteEvent) {
-		srv.messageCache.Remove(m.ChannelID, m.ID)
+		srv.messageCache.Remove(context.Background(), m.ChannelID, m.ID)
+	})
+	st.AddHandler(func(m *gateway.ThreadUpdateEvent) {
+		srv.messageCache.HandleThreadUpdateEvent(m)
 	})
 	r := chi.NewRouter()
 	srv.r = r
@@ -357,9 +361,9 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	var hasbefore, hasafter bool
 	var err error
 	if asc {
-		msgs, hasbefore, hasafter, err = s.messageCache.MessagesAfter(post.ID, cur, 25)
+		msgs, hasbefore, hasafter, err = s.messageCache.MessagesAfter(r.Context(), post.ID, cur, 25)
 	} else {
-		msgs, hasbefore, hasafter, err = s.messageCache.MessagesBefore(post.ID, cur, 25)
+		msgs, hasbefore, hasafter, err = s.messageCache.MessagesBefore(r.Context(), post.ID, cur, 25)
 	}
 	if hasafter && len(msgs) > 0 {
 		ctx.Next = msgs[len(msgs)-1].ID

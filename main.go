@@ -12,8 +12,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
+	"github.com/IoIxD/dforum/database"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
@@ -32,6 +34,7 @@ type config struct {
 	ServerHostedIn   string
 	ReloadTemplates  bool
 	TraceDiscordREST bool
+	Database         string
 }
 
 type TraceClient struct {
@@ -56,7 +59,9 @@ func main() {
 	if err := toml.Unmarshal(file, &config); err != nil {
 		log.Fatalln("Error while parsing config:", err)
 	}
-
+	if !strings.HasPrefix(config.Database, "postgres://") {
+		log.Fatalln("Config option 'Database' does not begin with postgres://", config.Database)
+	}
 	var fsys fs.FS
 	if config.Resources != "" {
 		fsys = os.DirFS(config.Resources)
@@ -100,6 +105,15 @@ func main() {
 		gateway.IntentGuilds |
 		gateway.IntentGuildMembers,
 	)
+	db, err := database.OpenPostgres(config.Database)
+	if err != nil {
+		log.Fatalln("Opening database connection:", err)
+	}
+	server, err := newServer(state, fsys, db, config)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	if err = state.Open(ctx); err != nil {
 		log.Fatalln("Error while opening gateway connection to Discord:", err)
 	}
@@ -108,12 +122,6 @@ func main() {
 		log.Fatalln("Error fetching self:", err)
 	}
 	log.Printf("Connected to Discord as %s#%s (%s)\n", self.Username, self.Discriminator, self.ID)
-
-	server, err := newServer(state, fsys, config)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
 	server.executeTemplateFn = tmplfn
 	httpserver := &http.Server{
 		Addr:           config.ListenAddr,

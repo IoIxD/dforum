@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 
+	"github.com/IoIxD/dforum/database"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 )
 
 func (s *server) channels(guildID discord.GuildID) ([]discord.Channel, error) {
@@ -101,7 +104,8 @@ func (s *server) ensureMembers(ctx context.Context, post discord.Channel, msgs [
 }
 
 type messageCache struct {
-	*api.Client
+	st       *state.State
+	db       database.Database
 	channels sync.Map // discord.ChannelID -> *channel
 }
 
@@ -110,56 +114,109 @@ type messageCache struct {
 type fetchCallback func(msgs []discord.Message, full bool, err error) (done bool)
 
 type channel struct {
-	mut  sync.Mutex
-	msgs []discord.Message
+	mut      sync.Mutex
+	uptodate *bool
 
 	fetchCallbacks chan<- fetchCallback
-	// fetchDone is closed when the messages have been fully fetched.
-	fetchDone <-chan struct{}
+	fetchDone      <-chan struct{}
 }
 
-func newMessageCache(c *api.Client) *messageCache {
+func newMessageCache(c *state.State, db database.Database) *messageCache {
 	return &messageCache{
-		Client: c,
+		st: c,
+		db: db,
 	}
 }
 
-func (c *messageCache) Set(m discord.Message, update bool) {
-	v, ok := c.channels.Load(m.ChannelID)
-	if !ok {
-		return
-	}
+func (c *messageCache) channel(chID discord.ChannelID) (*channel, error) {
+	v, _ := c.channels.LoadOrStore(chID, &channel{})
 	ch := v.(*channel)
 	ch.mut.Lock()
-	defer ch.mut.Unlock()
-	if ch.msgs == nil {
-		return
+	if ch.uptodate != nil {
+		return ch, nil
+	}
+	upd, err := c.db.UpdatedAt(context.Background(), chID)
+	if err != nil {
+		ch.mut.Unlock()
+		return nil, err
+	}
+	if upd.IsZero() {
+		b := false
+		ch.uptodate = &b
+		return ch, nil
+	}
+	channel, err := c.st.Channel(chID)
+	if err != nil {
+		ch.mut.Unlock()
+		return nil, err
+	}
+	if !channel.ThreadMetadata.Archived {
+		b := false
+		ch.uptodate = &b
+		return ch, nil
+	}
+	b := channel.ThreadMetadata.ArchiveTimestamp.Time().Before(upd)
+	ch.uptodate = &b
+	return ch, nil
+}
+
+func (c *messageCache) HandleThreadUpdateEvent(ev *gateway.ThreadUpdateEvent) error {
+	ch, err := c.channel(ev.ID)
+	if err != nil {
+		return err
+	}
+	if !ev.ThreadMetadata.Archived {
+		ch.mut.Unlock()
+		return nil
+	}
+	uptodate := *ch.uptodate
+	ch.mut.Unlock()
+	if uptodate {
+		return c.db.SetUpdatedAt(context.Background(), ev.ID, ev.ThreadMetadata.ArchiveTimestamp.Time())
+	}
+	return nil
+}
+
+func (c *messageCache) Set(ctx context.Context, m discord.Message, update bool) error {
+	ch, err := c.channel(m.ChannelID)
+	if err != nil {
+		return err
+	}
+	if *ch.uptodate {
+		ch.mut.Unlock()
+	} else {
+		fetchdone := ch.fetchDone
+		ch.mut.Unlock()
+		if fetchdone != nil {
+			<-fetchdone
+		} else {
+			return nil
+		}
 	}
 	if update {
-		for i := len(ch.msgs) - 1; i >= 0; i-- {
-			if ch.msgs[i].ID == m.ID {
-				ch.msgs[i] = m
-				return
-			}
-		}
+		return c.db.UpdateMessage(ctx, m)
+	} else {
+		return c.db.InsertMessage(ctx, m)
 	}
-	ch.msgs = append(ch.msgs, m)
 }
 
-func (c *messageCache) Remove(chid discord.ChannelID, id discord.MessageID) {
-	v, ok := c.channels.Load(chid)
-	if !ok {
-		return
+func (c *messageCache) Remove(ctx context.Context, chid discord.ChannelID, id discord.MessageID) error {
+	ch, err := c.channel(chid)
+	if err != nil {
+		return err
 	}
-	ch := v.(*channel)
-	ch.mut.Lock()
-	defer ch.mut.Unlock()
-	for i, msg := range ch.msgs {
-		if msg.ID == id {
-			ch.msgs = append(ch.msgs[:i], ch.msgs[i+1:]...)
-			return
+	if *ch.uptodate {
+		ch.mut.Unlock()
+	} else {
+		fetchdone := ch.fetchDone
+		ch.mut.Unlock()
+		if fetchdone != nil {
+			<-fetchdone
+		} else {
+			return nil
 		}
 	}
+	return c.db.DeleteMessage(ctx, id)
 }
 
 type result struct {
@@ -167,8 +224,29 @@ type result struct {
 	err  error
 }
 
-func (c *messageCache) MessagesAfter(ch discord.ChannelID, m discord.MessageID, limit uint) (messages []discord.Message, hasbefore, hasafter bool, err error) {
-	c.messages(ch, func(msgs []discord.Message, full bool, e error) (done bool) {
+func (c *messageCache) MessagesAfter(ctx context.Context, chID discord.ChannelID, m discord.MessageID, limit uint) (messages []discord.Message, hasbefore, hasafter bool, err error) {
+	ch, err := c.channel(chID)
+	if err != nil {
+		return
+	}
+	if *ch.uptodate {
+		ch.mut.Unlock()
+		messages, hasbefore, err = c.db.MessagesAfter(ctx, chID, m, limit+1)
+		if err != nil {
+			return
+		}
+		if len(messages) == int(limit)+1 {
+			hasafter = true
+			messages = messages[:len(messages)-1]
+		}
+		return
+	}
+	c.messages(ch, chID, func(msgs []discord.Message, full bool, e error) (done bool) {
+		select {
+		case <-ctx.Done():
+			return true
+		default:
+		}
 		if e != nil {
 			err = e
 			return true
@@ -196,8 +274,29 @@ func (c *messageCache) MessagesAfter(ch discord.ChannelID, m discord.MessageID, 
 	return
 }
 
-func (c *messageCache) MessagesBefore(ch discord.ChannelID, m discord.MessageID, limit uint) (messages []discord.Message, hasbefore, hasafter bool, err error) {
-	c.messages(ch, func(msgs []discord.Message, full bool, e error) (done bool) {
+func (c *messageCache) MessagesBefore(ctx context.Context, chID discord.ChannelID, m discord.MessageID, limit uint) (messages []discord.Message, hasbefore, hasafter bool, err error) {
+	ch, err := c.channel(chID)
+	if err != nil {
+		return
+	}
+	if *ch.uptodate {
+		ch.mut.Unlock()
+		messages, hasafter, err = c.db.MessagesBefore(ctx, chID, m, limit+1)
+		if err != nil {
+			return
+		}
+		if len(messages) == int(limit)+1 {
+			hasbefore = true
+			messages = messages[1:]
+		}
+		return
+	}
+	c.messages(ch, chID, func(msgs []discord.Message, full bool, e error) (done bool) {
+		select {
+		case <-ctx.Done():
+			return true
+		default:
+		}
 		if e != nil {
 			err = e
 			return true
@@ -227,15 +326,7 @@ func (c *messageCache) MessagesBefore(ch discord.ChannelID, m discord.MessageID,
 	return
 }
 
-func (c *messageCache) messages(id discord.ChannelID, fn fetchCallback) {
-	v, _ := c.channels.LoadOrStore(id, &channel{})
-	ch := v.(*channel)
-	ch.mut.Lock()
-	if ch.msgs != nil {
-		fn(ch.msgs, true, nil)
-		ch.mut.Unlock()
-		return
-	}
+func (c *messageCache) messages(ch *channel, chid discord.ChannelID, fn fetchCallback) {
 	done := make(chan struct{})
 	wrapped := func(msgs []discord.Message, good bool, err error) bool {
 		found := fn(msgs, good, err)
@@ -252,14 +343,24 @@ func (c *messageCache) messages(id discord.ChannelID, fn fetchCallback) {
 		return
 	}
 	callbacks := make(chan fetchCallback, 1)
+	fetchdone := make(chan struct{})
 	callbacks <- wrapped
+	ch.fetchDone = fetchdone
 	ch.fetchCallbacks = callbacks
 	ch.mut.Unlock()
 	go func() {
-		msgs, err := load(c.Client, id, callbacks)
+		msgs, err := load(c.st.Client, chid, callbacks)
 		ch.mut.Lock()
+		close(fetchdone)
+		err = c.db.UpdateMessages(context.Background(), chid, msgs)
+		if err != nil {
+			// TODO(samhza): handle this better
+			log.Println("updating messages:", err)
+		}
 		ch.fetchCallbacks = nil
-		ch.msgs = msgs
+		ch.fetchDone = nil
+		b := err == nil
+		ch.uptodate = &b
 	Outer:
 		for {
 			select {
