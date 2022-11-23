@@ -16,6 +16,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/naoina/toml"
 )
 
@@ -23,13 +24,25 @@ import (
 var embedfs embed.FS
 
 type config struct {
-	BotToken        string
-	ListenAddr      string
-	Resources       string
-	SiteURL         string
-	ServiceName     string
-	ServerHostedIn  string
-	ReloadTemplates bool
+	BotToken         string
+	ListenAddr       string
+	Resources        string
+	SiteURL          string
+	ServiceName      string
+	ServerHostedIn   string
+	ReloadTemplates  bool
+	TraceDiscordREST bool
+}
+
+type TraceClient struct {
+	httpdriver.Client
+}
+
+func (c TraceClient) Do(req httpdriver.Request) (httpdriver.Response, error) {
+	then := time.Now()
+	resp, err := c.Client.Do(req)
+	log.Printf("Discord REST: %s in %s", req.GetPath(), time.Since(then))
+	return resp, err
 }
 
 func main() {
@@ -79,6 +92,9 @@ func main() {
 	defer done()
 
 	state := state.New("Bot " + config.BotToken)
+	if config.TraceDiscordREST {
+		state.Client.Client.Client = TraceClient{state.Client.Client.Client}
+	}
 	state.AddIntents(0 |
 		gateway.IntentGuildMessages |
 		gateway.IntentGuilds |
