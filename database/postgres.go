@@ -243,12 +243,12 @@ func (db *Postgres) MessagesAfter(ctx context.Context, ch discord.ChannelID, msg
 		var content string
 		var jsonb []byte
 		if err = rows.Scan(&content, &jsonb); err != nil {
-			fmt.Errorf("error scanning message: %w", err)
+			err = fmt.Errorf("error scanning message: %w", err)
 			return
 		}
 		var msg discord.Message
 		if err = json.Unmarshal(jsonb, &msg); err != nil {
-			fmt.Errorf("unmrshaling message content: %w", err)
+			err = fmt.Errorf("unmrshaling message content: %w", err)
 			return
 		}
 		msg.Content = content
