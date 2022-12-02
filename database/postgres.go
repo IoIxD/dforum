@@ -267,7 +267,7 @@ func (db *Postgres) MessagesBefore(ctx context.Context, ch discord.ChannelID, ms
 	if err != nil {
 		return
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT content, json FROM (SELECT id, content, json FROM "Message" WHERE channel = $1 AND id < $2 ORDER BY id DESC LIMIT $3) ORDER BY id ASC`,
+	rows, err := tx.QueryContext(ctx, `SELECT content, json FROM (SELECT id, content, json FROM "Message" WHERE channel = $1 AND id < $2 ORDER BY id DESC LIMIT $3) AS x ORDER BY id ASC`,
 		ch, msg, limit)
 	if err != nil {
 		err = fmt.Errorf("querying messages: %v", err)
@@ -276,12 +276,8 @@ func (db *Postgres) MessagesBefore(ctx context.Context, ch discord.ChannelID, ms
 	for rows.Next() {
 		var content string
 		var jsonb []byte
-		if err = rows.Scan(&content); err != nil {
+		if err = rows.Scan(&content, &jsonb); err != nil {
 			err = fmt.Errorf("error scanning message content: %w", err)
-			return
-		}
-		if err = rows.Scan(&jsonb); err != nil {
-			err = fmt.Errorf("error scanning message json: %w", err)
 			return
 		}
 		var msg discord.Message
