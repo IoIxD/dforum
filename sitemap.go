@@ -79,9 +79,9 @@ var SitemapSetStart = xml.StartElement{
 var XMLURLSetEnd = XMLURLSetStart.End()
 var SitemapSetEnd = SitemapSetStart.End()
 
-var guildList []URL = make([]URL, 0)
-var chanList []URL = make([]URL, 0)
-var postList []URL = make([]URL, 0)
+var guildList map[int]URL = make(map[int]URL, 0)
+var chanList map[int]URL = make(map[int]URL, 0)
+var postList map[int]URL = make(map[int]URL, 0)
 
 func (s *server) writeSitemap(w io.Writer, offset string) error {
 	if _, err := io.WriteString(w, xml.Header); err != nil {
@@ -99,42 +99,51 @@ func (s *server) writeSitemap(w io.Writer, offset string) error {
 		}
 	}
 
+	i1, i2, i3 := 0, 0, 0
 	guilds, _ := s.discord.Cabinet.Guilds()
 	me, _ := s.discord.Cabinet.Me()
-	for _, guild := range guilds {
-		guildList = append(guildList, URL{
-			Location: fmt.Sprintf("%s/%s", s.URL, guild.ID),
-		})
-		memberSelf, err := s.discord.Member(guild.ID, me.ID)
-		if err != nil {
-			return fmt.Errorf("error fetching self as member: %w", err)
-		}
-		channels, err := s.channels(guild.ID)
-		if err != nil {
-			return fmt.Errorf("error fetching channels: %w", err)
-		}
-		for _, forum := range channels {
-			if forum.Type != discord.GuildForum {
-				continue
+	if _, ok := guildList[0]; !ok || time.Since(s.sitemapUpdated) > 6*time.Hour {
+		for _, guild := range guilds {
+			guildList[i1] = URL{
+				Location: fmt.Sprintf("%s/%s", s.URL, guild.ID),
 			}
-			perms := discord.CalcOverwrites(guild, forum, *memberSelf)
-			if !perms.Has(0 |
-				discord.PermissionReadMessageHistory |
-				discord.PermissionViewChannel) {
-				continue
+			memberSelf, err := s.discord.Member(guild.ID, me.ID)
+			if err != nil {
+				return fmt.Errorf("error fetching self as member: %w", err)
 			}
-			chanList = append(chanList, URL{
-				Location: fmt.Sprintf("%s/%s/%s", s.URL, guild.ID, forum.ID),
-			})
-			for _, post := range channels {
-				if post.ParentID != forum.ID ||
-					post.Type != discord.GuildPublicThread {
+			channels, err := s.channels(guild.ID)
+			if err != nil {
+				return fmt.Errorf("error fetching channels: %w", err)
+			}
+			for _, forum := range channels {
+				if forum.Type != discord.GuildForum {
 					continue
 				}
-				postList = append(postList, URL{
-					Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
-				})
+				perms := discord.CalcOverwrites(guild, forum, *memberSelf)
+				if !perms.Has(0 |
+					discord.PermissionReadMessageHistory |
+					discord.PermissionViewChannel) {
+					continue
+				}
+				chanList[i2] = URL{
+					Location: fmt.Sprintf("%s/%s/%s", s.URL, guild.ID, forum.ID),
+				}
+				for _, post := range channels {
+					if post.ParentID != forum.ID ||
+						post.Type != discord.GuildPublicThread {
+						continue
+					}
+					postList[i3] = URL{
+						Location: fmt.Sprintf("%s/%s/%s/%s", s.URL, guild.ID, forum.ID, post.ID),
+					}
+					i3++
+				}
+				i2++
 			}
+			i1++
+		}
+		if time.Since(s.sitemapUpdated) > 6*time.Hour {
+			s.sitemapUpdated = time.Now()
 		}
 	}
 
