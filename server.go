@@ -368,7 +368,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	if hasafter && len(msgs) > 0 {
 		ctx.Next = msgs[len(msgs)-1].ID
 	}
-	if hasbefore {
+	if hasbefore && len(msgs) != 0 {
 		ctx.Prev = msgs[0].ID
 	}
 	if err != nil {
