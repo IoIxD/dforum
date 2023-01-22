@@ -85,6 +85,7 @@ func (db *Postgres) UpdateMessages(ctx context.Context, post discord.ChannelID, 
 	if err != nil {
 		return err
 	}
+	defer insert.Close()
 	if !exists {
 		for _, msg := range msgs {
 			content := msg.Content
@@ -143,6 +144,7 @@ func (db *Postgres) UpdateMessages(ctx context.Context, post discord.ChannelID, 
 		if err != nil {
 			return err
 		}
+		defer del.Close()
 		for _, id := range toDelete {
 			if _, err := del.ExecContext(ctx, id); err != nil {
 				return err
@@ -154,6 +156,7 @@ func (db *Postgres) UpdateMessages(ctx context.Context, post discord.ChannelID, 
 		if err != nil {
 			return err
 		}
+		defer update.Close()
 		for _, msg := range toUpdate {
 			content := msg.Content
 			msg.Content = ""
