@@ -104,6 +104,7 @@ func (db *Postgres) UpdateMessages(ctx context.Context, post discord.ChannelID, 
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
 	var toDelete []discord.MessageID
 	var toInsert []discord.Message
 	var toUpdate []discord.Message
@@ -239,6 +240,7 @@ func (db *Postgres) MessagesAfter(ctx context.Context, ch discord.ChannelID, msg
 		err = fmt.Errorf("querying messages: %v", err)
 		return
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var content string
 		var jsonb []byte
@@ -273,6 +275,7 @@ func (db *Postgres) MessagesBefore(ctx context.Context, ch discord.ChannelID, ms
 		err = fmt.Errorf("querying messages: %v", err)
 		return
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var content string
 		var jsonb []byte
