@@ -208,6 +208,7 @@ func (db *Postgres) UpdateMessage(ctx context.Context, msg discord.Message) erro
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
 	var edited time.Time
 	err = tx.QueryRowContext(ctx, `SELECT edited_at FROM "Message" WHERE id = $1`, msg.ID).Scan(&edited)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
