@@ -35,7 +35,7 @@ type server struct {
 	requestMembers sync.Mutex
 	membersGot     map[discord.ChannelID]struct{}
 
-	sitemaps       map[string][]byte
+	sitemap        []byte
 	sitemapUpdated time.Time
 	sitemapMu      sync.Mutex
 
@@ -74,7 +74,6 @@ func newServer(st *state.State, fsys fs.FS, db database.Database, config config)
 	})
 	r := chi.NewRouter()
 	srv.r = r
-	srv.sitemaps = make(map[string][]byte)
 	r.Use(middleware.Logger)
 	getHead(r, `/sitemap.xml`, srv.getSitemap)
 	getHead(r, "/", srv.getIndex)
