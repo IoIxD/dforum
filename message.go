@@ -128,18 +128,20 @@ func (s *server) message(m discord.Message) Message {
 
 func (s *server) author(m discord.Message) Author {
 	auth := Author{
-		ID:     m.Author.ID,
-		Name:   m.Author.Username,
-		Avatar: m.Author.AvatarURLWithType(discord.WebPImage) + "?size=128",
-		Bot:    m.Author.Bot,
+		ID:   m.Author.ID,
+		Name: m.Author.Username,
+		Bot:  m.Author.Bot,
 	}
 	var role string
 	var color string
 	mr, err := s.discord.Cabinet.Member(m.GuildID, m.Author.ID)
 	if err != nil {
 		// not a real error, just means the user is not in the guild
+		m.Author.Avatar = ""
+		auth.Avatar = m.Author.AvatarURLWithType(discord.WebPImage) + "?size=128"
 		return auth
 	}
+	auth.Avatar = mr.User.AvatarURLWithType(discord.WebPImage) + "?size=128"
 	for _, rid := range mr.RoleIDs {
 		rl, err := s.discord.Cabinet.Role(m.GuildID, rid)
 		if err != nil {
