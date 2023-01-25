@@ -324,11 +324,11 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		}
 		posts = append(posts, post)
 	}
-	sort.SliceStable(ctx.Posts, func(i, j int) bool {
-		if ctx.Posts[i].Flags^ctx.Posts[j].Flags&discord.PinnedThread != 0 {
-			return ctx.Posts[i].Flags&discord.PinnedThread != 0
+	sort.SliceStable(posts, func(i, j int) bool {
+		if posts[i].Flags^posts[j].Flags&discord.PinnedThread != 0 {
+			return posts[i].Flags&discord.PinnedThread != 0
 		}
-		return ctx.Posts[i].LastMessageID.Time().After(ctx.Posts[j].LastMessageID.Time())
+		return posts[i].LastMessageID.Time().After(posts[j].LastMessageID.Time())
 	})
 	page, err := strconv.Atoi(chi.URLParam(r, "page"))
 	if err != nil || page < 1 {
