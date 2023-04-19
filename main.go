@@ -32,7 +32,6 @@ type config struct {
 	SiteURL          string
 	ServiceName      string
 	ServerHostedIn   string
-	SitemapDir       string
 	ReloadTemplates  bool
 	TraceDiscordREST bool
 	Database         string
@@ -115,10 +114,6 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	ready, cancel := state.ChanFor(func(e interface{}) bool {
-		_, ok := e.(*gateway.ReadyEvent)
-		return ok
-	})
 	if err = state.Open(ctx); err != nil {
 		log.Fatalln("Error while opening gateway connection to Discord:", err)
 	}
@@ -126,13 +121,6 @@ func main() {
 	if err != nil {
 		log.Fatalln("Error fetching self:", err)
 	}
-	select {
-	case <-ready:
-	case <-ctx.Done():
-		return
-	}
-	cancel()
-	go server.UpdateSitemap()
 	log.Printf("Connected to Discord as %s#%s (%s)\n", self.Username, self.Discriminator, self.ID)
 	server.executeTemplateFn = tmplfn
 	httpserver := &http.Server{
