@@ -8,7 +8,10 @@ import (
 	"hash/crc32"
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"sync"
@@ -35,14 +38,14 @@ type server struct {
 	requestMembers sync.Mutex
 	membersGot     map[discord.ChannelID]struct{}
 
-	sitemaps       map[string][]byte
-	sitemapUpdated time.Time
-	sitemapMu      sync.Mutex
+	sitemapMu     sync.Mutex
+	updateSitemap chan struct{}
 
 	// configuration options
 	URL               string
 	ServiceName       string
 	ServerHostedIn    string
+	SitemapDir        string
 	executeTemplateFn ExecuteTemplateFunc
 
 	buffers *sync.Pool
@@ -59,6 +62,7 @@ func newServer(st *state.State, fsys fs.FS, db database.Database, config config)
 		URL:             config.SiteURL,
 		ServiceName:     config.ServiceName,
 		ServerHostedIn:  config.ServerHostedIn,
+		SitemapDir:      config.SitemapDir,
 	}
 	st.AddHandler(func(m *gateway.MessageCreateEvent) {
 		srv.messageCache.Set(context.Background(), m.Message, false)
@@ -74,8 +78,9 @@ func newServer(st *state.State, fsys fs.FS, db database.Database, config config)
 	})
 	r := chi.NewRouter()
 	srv.r = r
-	srv.sitemaps = make(map[string][]byte)
+	srv.updateSitemap = make(chan struct{}, 1)
 	r.Use(middleware.Logger)
+	getHead(r, `/sitemap/*`, srv.getSitemap)
 	getHead(r, `/sitemap.xml`, srv.getSitemap)
 	getHead(r, "/", srv.getIndex)
 	r.Route("/{guildID:\\d+}", func(r chi.Router) {
@@ -95,6 +100,36 @@ func newServer(st *state.State, fsys fs.FS, db database.Database, config config)
 		srv.displayErr(w, http.StatusNotFound, nil)
 	}))
 	return srv, nil
+}
+
+func (s *server) UpdateSitemap() {
+	first := true
+	ticker := time.NewTicker(6 * time.Hour)
+	for {
+		index := filepath.Join(s.SitemapDir, "sitemap.xml")
+		stat, err := os.Stat(index)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Println("Error occured while reading sitemap last modified time:", err)
+			continue
+		}
+		if err == nil && time.Since(stat.ModTime()) < 6*time.Hour {
+			continue
+		} else {
+			if first {
+				log.Println("Waiting 60 seconds before generating sitemap.")
+				time.Sleep(60 * time.Second)
+				first = false
+			}
+			err = s.writeSitemap()
+			if err != nil {
+				log.Println("Error occured while writing sitemap:", err)
+			}
+		}
+		select {
+		case <-ticker.C:
+		case <-s.updateSitemap:
+		}
+	}
 }
 
 func getHead(r chi.Router, path string, handler http.HandlerFunc) {
