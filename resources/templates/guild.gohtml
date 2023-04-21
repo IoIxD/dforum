@@ -7,7 +7,9 @@
 
 <span class='logo'><a href="/">dforum</a></span>
 <nav>
-<img src='{{.Guild.IconURL}}?size=48'>
+{{with .Guild.IconURL}}
+<img src='{{.}}?size=48'>
+{{end}}
 <ul>
     <li>{{.Guild.Name}}</li>
 </ul>
