@@ -4,18 +4,23 @@
 
 <h3>Messages</h3>
 
-<p>All content here is taken from Discord. Messages are cached internally until Discord deems the contents invalid, either by:
+<p>All content here is taken from Discord. Messages are cached internally, either until:</p>
 
 <ul>
-    <li>Updating of the message.</li>
-    <li>Deleting of the message.</li>
-    <li>The bot leaving or being kicked from the server that the message is in.</li>
-    <li>Any miscellaneous situation in which the bot no longer has access to the message.</li>
+    <li>The server restarts, which happens once every 24 hours</li>
+    <li>Until Discord deems the contents invalid, either by
+        <ul>
+            <li>Updating of the message.</li>
+            <li>Deleting of the message.</li>
+            <li>The bot leaving or being kicked from the server that the message is in.</li>
+            <li>Any miscellaneous situation in which the bot no longer has access to the message.</li>
+        </ul>
+    </li>
 </ul>
 
-Messages are only cached into memory. This is subject to change.
+<p>...whichever happens first.</p>
 
-</p>
+<p>We cannot recover the data from within memory if the publically viewable portion of the site becomes inaccessible. We also cannot recover messages that have been deleted when the server restarts. If you have data that was invalidated by Discord, we cannot be relied on to recover said data.</p>
 
 <h3>Sitemap</h3>
 <p>The sitemap is cached for six hours. People will be able to find the message IDs of previously served messages this way, but they will not be able to use the service to get the contents of these messages. The bot leaving your server does not invalidate the cache until it is regenerated, unless the program is restarted in between those six hours.</p>
