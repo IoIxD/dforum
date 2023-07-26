@@ -20,9 +20,8 @@
 # Go workspace file
 go.work
 
-/config.toml
-/dforum
-/sitemap
+config.toml
+dforum
 
 start.sh
 .idea/
