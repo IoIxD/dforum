@@ -38,6 +38,7 @@ type Author struct {
 	Avatar    string
 	Bot       bool
 	Role      string
+	OtherRoles 	[]*discord.Role
 	RoleColor string
 }
 
@@ -142,15 +143,17 @@ func (s *server) author(m discord.Message) Author {
 		return auth
 	}
 	auth.Avatar = mr.User.AvatarURLWithType(discord.WebPImage) + "?size=128"
+	auth.OtherRoles = make([]*discord.Role, 0)
+	
 	for _, rid := range mr.RoleIDs {
 		rl, err := s.discord.Cabinet.Role(m.GuildID, rid)
 		if err != nil {
 			continue
 		}
+		auth.OtherRoles = append(auth.OtherRoles, rl)
 		if rl.Hoist {
 			role = rl.Name
 			color = rl.Color.String()
-			break
 		}
 	}
 	auth.Role = role

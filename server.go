@@ -9,8 +9,10 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,11 +48,17 @@ type server struct {
 	executeTemplateFn ExecuteTemplateFunc
 
 	buffers *sync.Pool
+
+	optionsRegex *regexp.Regexp
 }
 
 type ExecuteTemplateFunc func(w io.Writer, name string, data interface{}) error
 
 func newServer(st *state.State, fsys fs.FS, db database.Database, config config) (*server, error) {
+	optionsRegex, err := regexp.Compile(`<\?dforum (.*?)\?>`)
+	if(err != nil) {
+		return nil, err
+	}
 	srv := &server{
 		fetchedInactive: make(map[discord.ChannelID]struct{}),
 		discord:         st,
@@ -59,6 +67,7 @@ func newServer(st *state.State, fsys fs.FS, db database.Database, config config)
 		URL:             config.SiteURL,
 		ServiceName:     config.ServiceName,
 		ServerHostedIn:  config.ServerHostedIn,
+		optionsRegex: 	 optionsRegex,
 	}
 	st.AddHandler(func(m *gateway.MessageCreateEvent) {
 		srv.messageCache.Set(context.Background(), m.Message, false)
@@ -384,6 +393,38 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	topic := forum.Topic
+	restrictRole := 0
+
+	if strings.Contains(topic, "<?dforum ") {
+		sections := s.optionsRegex.FindStringSubmatch(topic)
+		for _, section := range sections[1:] {
+			if err != nil {
+				s.displayErr(w, http.StatusInternalServerError,
+					fmt.Errorf("fetching forum's topic: %w", err))
+				return
+			}
+			options := strings.Split(section, ",")
+			for _, option := range options {
+				parts := strings.Split(option,"=")
+				if len(parts) < 2 {
+					continue
+				}
+				key := parts[0]
+				value := parts[1]
+				switch key {
+					case "consentrole":
+						restrictRole, err = strconv.Atoi(value)
+						if err != nil {
+							s.displayErr(w, http.StatusInternalServerError,
+								fmt.Errorf("error parsing the ID for the server's consent role: %w", err))
+							return
+						}
+				}
+			}
+		}
+	}
+
 	var msgrps []MessageGroup
 	i := -1
 	for _, m := range msgs {
@@ -391,6 +432,22 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 		msg := s.message(m)
 		if i == -1 || msgrps[i].Author.ID != m.Author.ID {
 			auth := s.author(m)
+			if restrictRole != 0 {
+				goodToGo := false
+				for _, rl := range auth.OtherRoles {
+					fmt.Println(rl.ID, restrictRole)
+					if int(rl.ID) == restrictRole {
+						goodToGo = true
+						break
+					}
+				}
+				if !goodToGo {
+					s.displayErr(w, http.StatusForbidden,
+						errors.New("one or more users in this post did not consent to their post being shown"))
+					return 
+				}
+			}
+
 			msgrps = append(msgrps, MessageGroup{auth, []Message{msg}})
 			i++
 		} else {
@@ -438,6 +495,8 @@ func (s *server) forumFromReq(w http.ResponseWriter, r *http.Request) (*discord.
 		}
 		return nil, false
 	}
+
+	
 	if forum.NSFW {
 		s.displayErr(w, http.StatusForbidden,
 			errors.New("NSFW content is not served"))
