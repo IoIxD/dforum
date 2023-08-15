@@ -21,6 +21,12 @@ func (s *server) channels(guildID discord.GuildID) ([]discord.Channel, error) {
 	if err != nil {
 		return nil, err
 	}
+	sort.SliceStable(channels, func(i, j int) bool {
+		if channels[i].Flags^channels[j].Flags&discord.PinnedThread != 0 {
+			return channels[i].Flags&discord.PinnedThread != 0
+		}
+		return channels[i].LastMessageID.Time().After(channels[j].LastMessageID.Time())
+	})
 	guild, _ := s.discord.Cabinet.Guild(guildID)
 	me, _ := s.discord.Cabinet.Me()
 	selfMember, err := s.discord.Member(guildID, me.ID)
