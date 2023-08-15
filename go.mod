@@ -3,7 +3,7 @@ module github.com/IoIxD/dforum
 go 1.19
 
 require (
-	github.com/diamondburned/ningen/v3 v3.0.0-20220619214735-56004aa62571
+	github.com/diamondburned/ningen/v3 v3.0.0
 	github.com/naoina/toml v0.1.1
 )
 
@@ -17,10 +17,9 @@ require (
 )
 
 require (
-	github.com/diamondburned/arikawa/v3 v3.1.1-0.20221002050228-3ae45b78164e
-	github.com/go-chi/chi/v5 v5.0.7
+	github.com/diamondburned/arikawa/v3 v3.3.2
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/lib/pq v1.10.7
-	github.com/mattn/go-sqlite3 v1.14.16
-	github.com/yuin/goldmark v1.4.14
+	github.com/lib/pq v1.10.9
+	github.com/yuin/goldmark v1.5.5
 )
