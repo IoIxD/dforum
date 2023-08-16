@@ -8,7 +8,10 @@ import (
 	"hash/crc32"
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -37,14 +40,14 @@ type server struct {
 	requestMembers sync.Mutex
 	membersGot     map[discord.ChannelID]struct{}
 
-	sitemaps       map[string][]byte
-	sitemapUpdated time.Time
-	sitemapMu      sync.Mutex
+	sitemapMu     sync.Mutex
+	updateSitemap chan struct{}
 
 	// configuration options
 	URL               string
 	ServiceName       string
 	ServerHostedIn    string
+	SitemapDir        string
 	executeTemplateFn ExecuteTemplateFunc
 
 	buffers *sync.Pool
@@ -56,7 +59,7 @@ type ExecuteTemplateFunc func(w io.Writer, name string, data interface{}) error
 
 func newServer(st *state.State, fsys fs.FS, db database.Database, config config) (*server, error) {
 	optionsRegex, err := regexp.Compile(`<\?dforum (.*?)\?>`)
-	if(err != nil) {
+	if err != nil {
 		return nil, err
 	}
 	srv := &server{
@@ -67,7 +70,8 @@ func newServer(st *state.State, fsys fs.FS, db database.Database, config config)
 		URL:             config.SiteURL,
 		ServiceName:     config.ServiceName,
 		ServerHostedIn:  config.ServerHostedIn,
-		optionsRegex: 	 optionsRegex,
+		optionsRegex:    optionsRegex,
+		SitemapDir:      config.SitemapDir,
 	}
 	st.AddHandler(func(m *gateway.MessageCreateEvent) {
 		srv.messageCache.Set(context.Background(), m.Message, false)
@@ -83,8 +87,9 @@ func newServer(st *state.State, fsys fs.FS, db database.Database, config config)
 	})
 	r := chi.NewRouter()
 	srv.r = r
-	srv.sitemaps = make(map[string][]byte)
+	srv.updateSitemap = make(chan struct{}, 1)
 	r.Use(middleware.Logger)
+	getHead(r, `/sitemap/*`, srv.getSitemap)
 	getHead(r, `/sitemap.xml`, srv.getSitemap)
 	getHead(r, "/", srv.getIndex)
 	r.Route("/{guildID:\\d+}", func(r chi.Router) {
@@ -104,6 +109,36 @@ func newServer(st *state.State, fsys fs.FS, db database.Database, config config)
 		srv.displayErr(w, http.StatusNotFound, nil)
 	}))
 	return srv, nil
+}
+
+func (s *server) UpdateSitemap() {
+	first := true
+	ticker := time.NewTicker(6 * time.Hour)
+	for {
+		index := filepath.Join(s.SitemapDir, "sitemap.xml")
+		stat, err := os.Stat(index)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Println("Error occured while reading sitemap last modified time:", err)
+			continue
+		}
+		if err == nil && time.Since(stat.ModTime()) < 6*time.Hour {
+			continue
+		} else {
+			if first {
+				log.Println("Waiting 60 seconds before generating sitemap.")
+				time.Sleep(60 * time.Second)
+				first = false
+			}
+			err = s.writeSitemap()
+			if err != nil {
+				log.Println("Error occured while writing sitemap:", err)
+			}
+		}
+		select {
+		case <-ticker.C:
+		case <-s.updateSitemap:
+		}
+	}
 }
 
 func getHead(r chi.Router, path string, handler http.HandlerFunc) {
@@ -298,6 +333,12 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		}
 		posts = append(posts, post)
 	}
+	sort.SliceStable(posts, func(i, j int) bool {
+		if posts[i].Flags^posts[j].Flags&discord.PinnedThread != 0 {
+			return posts[i].Flags&discord.PinnedThread != 0
+		}
+		return posts[i].LastMessageID.Time().After(posts[j].LastMessageID.Time())
+	})
 	page, err := strconv.Atoi(chi.URLParam(r, "page"))
 	if err != nil || page < 1 {
 		page = 1
@@ -400,20 +441,20 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 			}
 			options := strings.Split(section, ",")
 			for _, option := range options {
-				parts := strings.Split(option,"=")
+				parts := strings.Split(option, "=")
 				if len(parts) < 2 {
 					continue
 				}
 				key := parts[0]
 				value := parts[1]
 				switch key {
-					case "consentrole":
-						restrictRole, err = strconv.Atoi(value)
-						if err != nil {
-							s.displayErr(w, http.StatusInternalServerError,
-								fmt.Errorf("error parsing the ID for the server's consent role: %w", err))
-							return
-						}
+				case "consentrole":
+					restrictRole, err = strconv.Atoi(value)
+					if err != nil {
+						s.displayErr(w, http.StatusInternalServerError,
+							fmt.Errorf("error parsing the ID for the server's consent role: %w", err))
+						return
+					}
 				}
 			}
 		}
@@ -438,7 +479,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 				if !goodToGo {
 					s.displayErr(w, http.StatusForbidden,
 						errors.New("one or more users in this post did not consent to their post being shown"))
-					return 
+					return
 				}
 			}
 
@@ -490,7 +531,6 @@ func (s *server) forumFromReq(w http.ResponseWriter, r *http.Request) (*discord.
 		return nil, false
 	}
 
-	
 	if forum.NSFW {
 		s.displayErr(w, http.StatusForbidden,
 			errors.New("NSFW content is not served"))
