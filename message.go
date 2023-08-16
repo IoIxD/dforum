@@ -33,13 +33,13 @@ type Message struct {
 }
 
 type Author struct {
-	ID        discord.UserID
-	Name      string
-	Avatar    string
-	Bot       bool
-	Role      string
-	OtherRoles 	[]*discord.Role
-	RoleColor string
+	ID         discord.UserID
+	Name       string
+	Avatar     string
+	Bot        bool
+	Role       string
+	OtherRoles []*discord.Role
+	RoleColor  string
 }
 
 type MediaPreview struct {
@@ -139,12 +139,13 @@ func (s *server) author(m discord.Message) Author {
 	if err != nil {
 		// not a real error, just means the user is not in the guild
 		m.Author.Avatar = ""
-		auth.Avatar = m.Author.AvatarURLWithType(discord.WebPImage) + "?size=128"
+		auth.Avatar = m.Author.AvatarURL() + "?size=128"
 		return auth
 	}
-	auth.Avatar = mr.User.AvatarURLWithType(discord.WebPImage) + "?size=128"
+	fmt.Println(mr.User.Avatar)
+	auth.Avatar = mr.User.AvatarURL() + "?size=128"
 	auth.OtherRoles = make([]*discord.Role, 0)
-	
+
 	for _, rid := range mr.RoleIDs {
 		rl, err := s.discord.Cabinet.Role(m.GuildID, rid)
 		if err != nil {
