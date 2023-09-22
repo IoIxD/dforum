@@ -26,6 +26,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"golang.org/x/exp/slices"
 )
 
 type server struct {
@@ -342,7 +343,13 @@ func (s *server) searchForum(w http.ResponseWriter, r *http.Request) {
 	}
 	arr := strings.Split(query," ")
 
+	if query == "" {
+		// Show blank page.
+		s.executeTemplate(w, r, "searchforum.gohtml", ctx)
+		return
+	}
 	var posts []Post
+	titles := []string{}
 	for _, thread := range channels {
 		if thread.ParentID != forum.ID ||
 			thread.Type != discord.GuildPublicThread {
@@ -356,13 +363,20 @@ func (s *server) searchForum(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		if strings.Contains(strings.ToLower(post.Channel.Name),strings.ToLower(query)) {
+		if slices.Contains(titles, post.Channel.Name) {
+			continue;
+		}
+		if strings.Contains(strings.ToLower(post.Channel.Name),query) {
 			posts = append(posts, post)
+			titles = append(titles, post.Channel.Name)
 		} else {
 			for _, str := range(arr) {
+				if len(str) <= 1 {
+					continue;
+				}
 				if strings.Contains(strings.ToLower(post.Channel.Name),strings.ToLower(str)) {
 					posts = append(posts, post)
-					continue;
+					titles = append(titles, post.Channel.Name)
 				}
 			}
 		}
@@ -581,7 +595,6 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 			if restrictRole != 0 {
 				goodToGo := false
 				for _, rl := range auth.OtherRoles {
-					fmt.Println(rl.ID, restrictRole)
 					if int(rl.ID) == restrictRole {
 						goodToGo = true
 						break
