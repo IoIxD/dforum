@@ -96,12 +96,17 @@ func newServer(st *state.State, fsys fs.FS, db database.Database, config config)
 		getHead(r, "/", srv.getGuild)
 		r.Route("/{forumID:\\d+}", func(r chi.Router) {
 			getHead(r, "/", srv.getForum)
-			getHead(r, "/page/{page:\\d+}", srv.getForum)
+			getHead(r, "/search", srv.searchForum)
+			r.Route("/page/{page:\\d+}", func(r chi.Router) {
+				getHead(r, "/", srv.getForum)
+				getHead(r, "/search", srv.searchForum)
+			})
 			r.Route("/{postID:\\d+}", func(r chi.Router) {
 				getHead(r, "/", srv.getPost)
 			})
 		})
 	})
+	
 	getHead(r, "/privacy", srv.PrivacyPage)
 	getHead(r, "/tos", srv.TOSPage)
 	getHead(r, "/static/*", http.FileServer(http.FS(fsys)).ServeHTTP)
@@ -199,6 +204,16 @@ func (s *server) publicActiveThreads(gid discord.GuildID) ([]discord.Channel, er
 	return threads, nil
 }
 
+
+func filter(ss []Post, test func(Post) bool) (ret []Post) {
+    for _, s := range ss {
+        if test(s) {
+            ret = append(ret, s)
+        }
+    }
+    return
+}
+
 func (s *server) getIndex(w http.ResponseWriter, r *http.Request) {
 	guilds, err := s.discord.Cabinet.Guilds()
 	if err != nil {
@@ -282,6 +297,97 @@ func (s *server) getGuild(w http.ResponseWriter, r *http.Request) {
 	s.executeTemplate(w, r, "guild.gohtml", ctx)
 }
 
+
+func (s *server) searchGuild(w http.ResponseWriter, r *http.Request) {
+	s.executeTemplate(w, r, "searchguild.gohtml", nil)
+}
+
+func (s *server) searchForum(w http.ResponseWriter, r *http.Request) {
+	guild, ok := s.guildFromReq(w, r)
+	if !ok {
+		return
+	}
+	forum, ok := s.forumFromReq(w, r)
+	if !ok {
+		return
+	}
+
+	query := r.URL.Query().Get("q")
+
+	if query == "" {
+		s.getForum(w,r)
+		return
+	}
+
+	ctx := struct {
+		Guild *discord.Guild
+		Forum *discord.Channel
+		Posts []Post
+		Prev  int
+		Next  int
+		URL   string
+		Query string
+		AppendedStr string
+	}{Guild: guild,
+		Forum: forum,
+		URL:   s.URL, 
+		Query: query, 
+		AppendedStr: "/search?q="+query,
+	}
+	channels, err := s.channels(guild.ID)
+	if err != nil {
+		s.displayErr(w, http.StatusInternalServerError,
+			fmt.Errorf("fetching guild threads: %w", err))
+		return
+	}
+	arr := strings.Split(query," ")
+
+	var posts []Post
+	for _, thread := range channels {
+		if thread.ParentID != forum.ID ||
+			thread.Type != discord.GuildPublicThread {
+			continue
+		}
+		post := Post{Channel: thread}
+		for _, tag := range thread.AppliedTags {
+			for _, availtag := range forum.AvailableTags {
+				if availtag.ID == tag {
+					post.Tags = append(post.Tags, availtag)
+				}
+			}
+		}
+		if strings.Contains(strings.ToLower(post.Channel.Name),strings.ToLower(query)) {
+			posts = append(posts, post)
+		} else {
+			for _, str := range(arr) {
+				if strings.Contains(strings.ToLower(post.Channel.Name),strings.ToLower(str)) {
+					posts = append(posts, post)
+					continue;
+				}
+			}
+		}
+	}
+	page, err := strconv.Atoi(chi.URLParam(r, "page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+	if page > 1 {
+		ctx.Prev = page - 1
+	}
+	if len(posts) > page*25 {
+		ctx.Next = page + 1
+		posts = posts[(page-1)*25 : page*25]
+	} else if len(posts) >= (page-1)*25 {
+		posts = posts[(page-1)*25:]
+	} else {
+		posts = nil
+	}
+	ctx.Posts = posts
+	s.executeTemplate(w, r, "searchforum.gohtml", ctx)
+}
+
+
+
 type Post struct {
 	discord.Channel
 	Tags []discord.Tag
@@ -308,6 +414,8 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 		Prev  int
 		Next  int
 		URL   string
+		Query string
+		AppendedStr string
 	}{Guild: guild,
 		Forum: forum,
 		URL:   s.URL}

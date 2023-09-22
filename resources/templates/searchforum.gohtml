@@ -1,6 +1,6 @@
-{{ template "header.gohtml" .}}
+{{template "header.gohtml"}}
 
-{{$title := print .Forum.Name " forum on " .Guild.Name}}
+{{$title := print "Searching" .Forum.Name " forum on " .Guild.Name}}
 <title>{{$title}}</title>
 <meta property="og:title" content="{{$title}}">
 <meta property="og:type" content="website">
@@ -11,7 +11,7 @@
 <img src='{{.Guild.IconURL}}?size=48'>
 <ul>
     <li><a href="/{{.Guild.ID}}">{{.Guild.Name}}</a></li>
-    <li>{{.Forum.Name}}</li>
+    <li>Searching {{.Forum.Name}}</li>
 </ul>
 <form class='tags' method='get'>
     <b>Filter by </b>
@@ -77,4 +77,4 @@
 {{end}}
 </div>
 
-{{ template "footer.gohtml" .}}
+{{template "footer.gohtml"}}

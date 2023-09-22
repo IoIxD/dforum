@@ -1,0 +1,15 @@
+<div class="more">
+    <form class="searchforum" action="/{{.Guild.ID}}/{{.Forum.ID}}/search">
+        {{if .Prev}}
+        <a class="prevbtn btn" href="/{{.Guild.ID}}/{{.Forum.ID}}/page/{{.Prev}}{{.AppendedStr}}">Previous</a><br>
+        {{else}}
+        <span class="prevbtn btn" style="opacity: 0">Previous</span>
+        {{end}}
+        <input type="text" class="search" name="q" value="{{.Query}}">
+        {{if .Next}}
+        <a class="nextbtn btn" href="/{{.Guild.ID}}/{{.Forum.ID}}/page/{{.Next}}{{.AppendedStr}}">Next</a><br>
+        {{else}}
+        <span class="nextbtn btn" style="opacity: 0">Next</span>
+        {{end}}
+    </form>
+</div>

@@ -154,7 +154,7 @@ nav .tags {
     vertical-align: middle;
 }
 
-nav .tags select, nav .tags option, nav .tags input, .btn {
+nav .tags select, nav .tags option, nav .tags input, .btn, input[type="text"] {
     border: none;
     background: #ccc;
     padding: 4px;
@@ -231,13 +231,22 @@ nav .tags select {
     display: block;
 }
 
-.btn {
+.btn, input[type="text"] {
     border: none;
     background: #ccc;
     padding: 4px;
     border-radius: 7.5px;
     cursor: pointer;
     color:#111;
+}
+
+.searchforum {
+    display: flex!important;
+}
+
+input[type="text"].search {
+    flex: 100;
+    margin: 4px;
 }
 
 .more {
@@ -250,16 +259,13 @@ nav .tags select {
     font-size: 16px;
     padding: 8px;
     margin: 4px;
-    position: absolute;
 }
 
 .prevbtn {
-    left: 0;
-    top: 0;
+    flex: 1;
 }
 .nextbtn {
-    right: 0;
-    top: 0;
+    flex: 1;
 }
 
 /* mobile */
@@ -444,12 +450,12 @@ nav .tags select {
         background: #333;
     }
 
-    nav .tags select, nav .tags option, nav .tags input, .btn {
+    nav .tags select, nav .tags option, nav .tags input, .btn, input[type="text"] {
         background: #333;
         color: white!important;
     }
 
-    .btn {
+    .btn, input[type="text"] {
         background: #333;
         color: #eee;
     }
