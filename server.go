@@ -367,6 +367,9 @@ func (s *server) searchForum(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	sort.SliceStable(posts, func(i, j int) bool {
+		return strings.Contains(strings.ToLower(posts[i].Channel.Name),strings.ToLower(query))
+	})
 	page, err := strconv.Atoi(chi.URLParam(r, "page"))
 	if err != nil || page < 1 {
 		page = 1
