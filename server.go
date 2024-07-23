@@ -514,6 +514,7 @@ func (s *server) getPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if forum.Type != discord.GuildForum {
+		s.displayErr(w, http.StatusNotFound, fmt.Errorf("threads cannot be viewed unless they are in a forum channel"))
 		return
 	}
 	ctx := struct {
