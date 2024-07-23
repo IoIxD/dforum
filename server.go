@@ -200,7 +200,7 @@ func (s *server) publicActiveThreads(gid discord.GuildID) ([]discord.Channel, er
 		if channel.Type != discord.GuildPublicThread {
 			continue
 		}
-		parent, err := s.discord.Cabinet.Channel(channel.ParentID)
+		parent, err := s.channel(channel.ParentID)
 		if err != nil {
 			return nil, err
 		}
@@ -447,7 +447,7 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	}
 	var posts []Post
 	for _, thread := range channels {
-		parent, err := s.discord.Cabinet.Channel(thread.ParentID)
+		parent, err := s.channel(thread.ParentID)
 		if err != nil {
 			s.displayErr(w, http.StatusInternalServerError,
 				fmt.Errorf("fetching parent channel's type: %w", err))
@@ -659,7 +659,7 @@ func (s *server) forumFromReq(w http.ResponseWriter, r *http.Request) (*discord.
 		return nil, false
 	}
 	forumID := discord.ChannelID(forumIDsf)
-	forum, err := s.discord.Cabinet.Channel(forumID)
+	forum, err := s.channel(forumID)
 	if err != nil {
 		if discordStatusIs(err, http.StatusNotFound) {
 			s.displayErr(w, http.StatusNotFound, nil)

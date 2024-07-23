@@ -14,6 +14,16 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 )
 
+func (s *server) channel(channelID discord.ChannelID) (*discord.Channel, error) {
+	s.fetchedInactiveMu.Lock()
+	defer s.fetchedInactiveMu.Unlock()
+	channel, err := s.discord.Channel(channelID)
+	if err != nil {
+		return nil, err
+	}
+	return channel, nil
+}
+
 func (s *server) channels(guildID discord.GuildID) ([]discord.Channel, error) {
 	s.fetchedInactiveMu.Lock()
 	defer s.fetchedInactiveMu.Unlock()
