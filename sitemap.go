@@ -132,13 +132,7 @@ func (s *server) writeSitemap() error {
 			if forum.Type != discord.GuildForum {
 				continue
 			}
-			parent, err := s.channel(forum.ParentID)
-			if err != nil {
-				continue
-			}
-			if parent.Type != discord.GuildForum {
-				continue
-			}
+
 			perms := discord.CalcOverwrites(guild, forum, *memberSelf)
 			if !perms.Has(0 |
 				discord.PermissionReadMessageHistory |
@@ -153,6 +147,13 @@ func (s *server) writeSitemap() error {
 		}
 		for _, post := range channels {
 			if post.Type != discord.GuildPublicThread {
+				continue
+			}
+			parent, err := s.channel(post.ParentID)
+			if err != nil {
+				continue
+			}
+			if parent.Type != discord.GuildForum {
 				continue
 			}
 			if err = encode(URL{
