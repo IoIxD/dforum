@@ -447,6 +447,12 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 	}
 	var posts []Post
 	for _, thread := range channels {
+
+		if thread.ParentID != forum.ID ||
+			thread.Type != discord.GuildPublicThread {
+			continue
+		}
+
 		parent, err := s.channel(thread.ParentID)
 		if err != nil {
 			s.displayErr(w, http.StatusInternalServerError,
@@ -456,10 +462,6 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if parent.Type != discord.GuildForum {
-			continue
-		}
-		if thread.ParentID != forum.ID ||
-			thread.Type != discord.GuildPublicThread {
 			continue
 		}
 		post := Post{Channel: thread}
