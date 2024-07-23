@@ -452,6 +452,9 @@ func (s *server) getForum(w http.ResponseWriter, r *http.Request) {
 			s.displayErr(w, http.StatusInternalServerError,
 				fmt.Errorf("fetching parent channel's type: %w", err))
 		}
+		if parent == nil {
+			continue
+		}
 		if parent.Type != discord.GuildForum {
 			continue
 		}
